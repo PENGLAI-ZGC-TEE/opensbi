@@ -6,7 +6,7 @@
 #include <sbi/riscv_encoding.h>
 
 //number of PMP registers
-#define NSPMP 8
+#define NSPMP 16
 
 //R/W/X/A/L field in PMP configuration registers
 #define SPMP_R     0x01
@@ -45,25 +45,6 @@
 //set to 1 when spmp trap happened, remember to clear it after handle the trap
 #define spmpexpt         0x145
 
-#define read_csr(reg) ({ unsigned long __tmp; \
-  asm volatile ("csrr %0, " #reg : "=r"(__tmp)); \
-  __tmp; })
-
-#define write_csr(reg, val) ({ \
-  asm volatile ("csrw " #reg ", %0" :: "rK"(val)); })
-
-#define swap_csr(reg, val) ({ unsigned long __tmp; \
-  asm volatile ("csrrw %0, " #reg ", %1" : "=r"(__tmp) : "rK"(val)); \
-  __tmp; })
-
-#define set_csr(reg, bit) ({ unsigned long __tmp; \
-  asm volatile ("csrrs %0, " #reg ", %1" : "=r"(__tmp) : "rK"(bit)); \
-  __tmp; })
-
-#define clear_csr(reg, bit) ({ unsigned long __tmp; \
-  asm volatile ("csrrc %0, " #reg ", %1" : "=r"(__tmp) : "rK"(bit)); \
-  __tmp; })
-
 //read spmpcfg & spmpaddr
 #define read_spmpcfg(pmpc)   read_csr(pmpc)
 #define read_spmpaddr(addr)  read_csr(addr)
@@ -91,7 +72,22 @@
 # define SPMP_PER_GROUP  4
 #endif
 
+#define _SPMP_UNSET(n, g) do {\
+  uintptr_t spmpcfg = csr_read(g); \
+  spmpcfg &= ~((uintptr_t)0xff << (uintptr_t)SPMPCFG_BIT_NUM*(num%SPMP_PER_CFG_REG)); \
+  asm volatile ("la t0, 1f \n\t" \
+                "csrrw t0, mtvec, t0 \n\t" \
+                "csrw "#n", %0\n\t" \
+                "csrw "#g", %1\n\t" \
+                "sfence.vma\n\t"\
+                ".align 2\n\t" \
+                "1: csrw mtvec, t0" \
+                : : "r" (0), "r" (spmpcfg) : "t0"); \
+} while(0)
+
 #define _SPMP_SET(n, g, addr, pmpc) do { \
+  uintptr_t spmpcfg = csr_read(g); \
+  spmpcfg |= ~((uintptr_t)0xff << (uintptr_t)SPMPCFG_BIT_NUM*(num%SPMP_PER_CFG_REG)); \
   asm volatile ("la t0, 1f\n\t" \
                 "csrrw t0, mtvec, t0\n\t" \
                 "csrw "#n", %0\n\t" \
@@ -108,6 +104,7 @@
 } while(0)
 
 #define SPMP_SET(n, g, addr, pmpc)  _SPMP_SET(n, g, addr, pmpc)
+#define SPMP_UNSET(n, g, addr, pmpc)  _SPMP_UNSET(n, g, addr, pmpc)
 #define SPMP_READ(n, g, addr, pmpc) _SPMP_READ(n, g, addr, pmpc)
 
 struct spmp_config_t

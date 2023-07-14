@@ -8,6 +8,7 @@
 //#include TARGET_PLATFORM_HEADER
 #include <sm/print.h>
 #include <sm/platform/pmp/platform.h>
+#include <sm/platform/pmp/enclave_mm.h>
 #include <stdint.h>
 #include <sm/enclave_args.h>
 
@@ -54,9 +55,9 @@ extern uintptr_t _fw_start[], _fw_end[];
 
 void sm_init();
 
-uintptr_t sm_mm_init(uintptr_t paddr, unsigned long size);
+uintptr_t sm_mm_init(enclave_class_t enclave_class, uintptr_t paddr, unsigned long size);
 
-uintptr_t sm_mm_extend(uintptr_t paddr, unsigned long size);
+uintptr_t sm_mm_extend(enclave_class_t enclave_class, uintptr_t paddr, unsigned long size);
 
 uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg);
 

@@ -8,6 +8,8 @@
  */
 
 #include <sbi/sbi_ecall_interface.h>
+#include <sbi/sbi_console.h>
+
 
 #define SBI_ECALL(__eid, __fid, __a0, __a1, __a2)                             \
 	({                                                                    \
@@ -43,6 +45,12 @@ static inline void sbi_ecall_console_puts(const char *str)
 void test_main(unsigned long a0, unsigned long a1)
 {
 	sbi_ecall_console_puts("\nTest payload running\n");
+
+	unsigned long x = 0x80000000;
+	char *str;
+	str = (char *) x;
+	
+	sbi_printf("%c", *str);
 
 	while (1)
 		wfi();

@@ -37,6 +37,12 @@ typedef enum
   STOPPED,
 } enclave_state_t;
 
+typedef enum
+{
+  PMP_REGION,
+  SPMP_REGION,
+} enclave_class_t;
+
 /*
  * enclave memory [paddr, paddr + size]
  * free_mem @ unused memory address in enclave mem
@@ -49,6 +55,9 @@ struct enclave_t
   //memory region of enclave
   unsigned long paddr;
   unsigned long size;
+
+  //type of pmp or spmp
+  enclave_class_t enclave_class;
 
   //address of left available memory in memory region
   unsigned long free_mem;

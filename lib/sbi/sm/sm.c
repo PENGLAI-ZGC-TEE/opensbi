@@ -2,6 +2,7 @@
 #include <sbi/riscv_atomic.h>
 #include <sm/sm.h>
 #include <sm/pmp.h>
+#include <sm/platform/spmp_xs/enclave_mm.h>
 #include <sm/enclave.h>
 #include <sm/attest.h>
 #include <sm/math.h>
@@ -16,7 +17,7 @@ void sm_init()
   attest_init();
 }
 
-uintptr_t sm_mm_init(uintptr_t paddr, unsigned long size)
+uintptr_t sm_mm_init(enclave_class_t enclave_class, uintptr_t paddr, unsigned long size)
 {
   uintptr_t retval = 0;
 
@@ -25,7 +26,13 @@ uintptr_t sm_mm_init(uintptr_t paddr, unsigned long size)
   printm("[Penglai Monitor] %s paddr:0x%lx, size:0x%lx\r\n",__func__, paddr, size);
   /*DEBUG: Dump PMP registers here */
   dump_pmps();
-  retval = mm_init(paddr, size);
+
+  printm_err("class:%#x\r\n", enclave_class);
+  if (enclave_class == PMP_REGION)
+	  retval = mm_init(paddr, size);
+  else
+    retval = mm_init_with_spmp(paddr, size);
+
   /*DEBUG: Dump PMP registers here */
   dump_pmps();
 
@@ -33,14 +40,17 @@ uintptr_t sm_mm_init(uintptr_t paddr, unsigned long size)
   return retval;
 }
 
-uintptr_t sm_mm_extend(uintptr_t paddr, unsigned long size)
+uintptr_t sm_mm_extend(enclave_class_t enclave_class, uintptr_t paddr, unsigned long size)
 {
   uintptr_t retval = 0;
   printm("[Penglai Monitor] %s invoked\r\n",__func__);
 
-  retval = mm_init(paddr, size);
-
-  printm("[Penglai Monitor] %s return:%ld\r\n",__func__, retval);
+  if (enclave_class == PMP_REGION)
+    retval = mm_init(paddr, size);
+  else
+    retval = mm_init_with_spmp(paddr, size);
+  
+  printm("[Penglai Monitor] %s return:%ld\r\n", __func__, retval);
   return retval;
 }
 

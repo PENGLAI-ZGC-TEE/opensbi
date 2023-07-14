@@ -35,9 +35,10 @@ struct mm_list_head_t
 #define MM_LIST_2_PADDR(mm_list) ((void*)(mm_list) - sizeof(struct mm_list_head_t))
 #define PADDR_2_MM_LIST(paddr) ((void*)(paddr) + sizeof(struct mm_list_head_t))
 
-struct mm_region_t
+struct mm_region_t 
 {
 	int valid;
+	enclave_class_t enclave_class;
 	uintptr_t paddr;
 	unsigned long size;
 	struct mm_list_head_t *mm_list_head;
@@ -74,6 +75,10 @@ uintptr_t mm_init(uintptr_t paddr, unsigned long size);
 void* mm_alloc(unsigned long req_size, unsigned long* resp_size);
 
 int mm_free(void* paddr, unsigned long size);
+
+int check_mem_overlap(uintptr_t paddr, unsigned long size);
+
+int check_mem_size(uintptr_t paddr, unsigned long size);
 
 void print_buddy_system();
 

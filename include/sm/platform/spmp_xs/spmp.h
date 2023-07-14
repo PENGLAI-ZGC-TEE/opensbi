@@ -117,6 +117,7 @@ struct spmp_config_t
   uintptr_t perm;
   uintptr_t mode;
   uintptr_t sbit;
+
 };
 
 void set_spmp(int spmp_idx, struct spmp_config_t);

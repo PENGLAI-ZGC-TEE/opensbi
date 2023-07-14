@@ -6,6 +6,7 @@
 #include <sbi/sbi_string.h>
 #include <sbi/riscv_locks.h>
 #include <sm/platform/pmp/platform.h>
+#include <sm/platform/spmp_xs/enclave_mm.h>
 #include <sm/utils.h>
 #include <sbi/sbi_timer.h>
 #include <sm/attest.h>
@@ -279,8 +280,16 @@ struct enclave_t* get_enclave(int eid)
 int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 {
 	//grant encalve access to memory
-	if(grant_enclave_access(enclave) < 0)
-		return -1;
+	if(enclave->enclave_class == PMP_REGION)
+	{
+		if(grant_enclave_access(enclave) < 0)
+			return -1;
+	}
+	else
+	{
+		if(grant_spmp_enclave_access(enclave) < 0)
+			return -1;
+	}
 
 	//save host context
 	swap_prev_state(&(enclave->thread_context), host_regs);
@@ -334,7 +343,10 @@ int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 int swap_from_enclave_to_host(uintptr_t* regs, struct enclave_t* enclave)
 {
 	//retrieve enclave access to memory
-	retrieve_enclave_access(enclave);
+	if(enclave->enclave_class == PMP_REGION)
+		retrieve_enclave_access(enclave);
+	else
+		retrieve_spmp_enclave_access(enclave);
 
 	//restore host context
 	swap_prev_state(&(enclave->thread_context), regs);
@@ -397,6 +409,7 @@ uintptr_t create_enclave(struct enclave_sbi_param_t create_args)
 	eid = enclave->eid;
 	enclave->paddr = create_args.paddr;
 	enclave->size = create_args.size;
+	enclave->enclave_class = (create_args.enclave_class == PMP_TYPE) ? PMP_REGION : SPMP_REGION;
 	enclave->entry_point = create_args.entry_point;
 	enclave->untrusted_ptr = create_args.untrusted_ptr;
 	enclave->untrusted_size = create_args.untrusted_size;

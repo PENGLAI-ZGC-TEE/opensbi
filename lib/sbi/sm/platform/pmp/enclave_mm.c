@@ -228,6 +228,11 @@ int check_enclave_pt(struct enclave_t *enclave)
 		(enclave->untrusted_size & page_mask) != 0 ||
 		(enclave_kbuffer_vaddr & page_mask) != 0 ||
 		(enclave->kbuffer_size & page_mask) != 0) {
+
+		printm_err("enclave_untrusted_vaddr: %#lx enclave->untrusted_size:%#lx\r\n",
+			   enclave_untrusted_vaddr, enclave->untrusted_size);
+		printm_err("enclave_kbuffer_vaddr: %#lx enclave->kbuffer_size:%#lx\r\n",
+			   enclave_kbuffer_vaddr, enclave->kbuffer_size);
 		printm_err(
 			"[Penglai Monitor@%s] Error: Enclave untrusted mem or "
 			"kbuffer are not aligned by page.\r\n",
@@ -391,10 +396,11 @@ uintptr_t copy_to_enclave(pte_t *enclave_root_pt, void* dest_enclave_va, void* s
 /*
  * Check the validness of the paddr and size
  * */
-static int check_mem_size(uintptr_t paddr, unsigned long size)
+int check_mem_size(uintptr_t paddr, unsigned long size)
 {
 	if((size == 0) || (size & (size - 1)))
 	{
+		printm_err("paddr:%ld size:%ld\r\n", paddr, size);
 		printm_err("pmp size should be 2^power!\r\n");
 		return -1;
 	}
@@ -642,6 +648,7 @@ uintptr_t mm_init(uintptr_t paddr, unsigned long size)
 	mm_regions[region_idx].valid = 1;
 	mm_regions[region_idx].paddr = paddr;
 	mm_regions[region_idx].size = size;
+	mm_regions[region_idx].enclave_class = PMP_REGION;
 	struct mm_list_t *mm_list = (struct mm_list_t*)PADDR_2_MM_LIST(paddr);
 	mm_list->order = ilog2(size-1) + 1;
 	mm_list->prev_mm = NULL;

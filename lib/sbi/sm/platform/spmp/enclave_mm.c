@@ -19,15 +19,15 @@
  */
 static struct mm_region_t mm_regions[N_PMP_REGIONS];
 static unsigned long pmp_bitmap = 0;
-static spinlock_t pmp_bitmap_lock = SPINLOCK_INIT;
+static spinlock_t pmp_bitmap_lock = SPIN_LOCK_INITIALIZER;
 
 
 static int check_mem_size(uintptr_t paddr, unsigned long size)
 {
   if((size == 0) || (size & (size - 1)))
   {
-    printm("pmp size should be 2^power!\r\n");
-    return -1;
+	  printm("pmp size should be 2^power!\r\n");
+	  return -1;
   }
 
   if(size < RISCV_PGSIZE)

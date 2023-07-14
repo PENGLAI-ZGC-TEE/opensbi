@@ -14,6 +14,9 @@
 #define SM_HASH                (SM_PRI_KEY + PRIVATE_KEY_SIZE)
 #define SM_SIGNATURE           (SM_HASH + HASH_SIZE)
 
+#define PMP_TYPE               0
+#define SPMP_TYPE              1
+
 struct mm_alloc_arg_t
 {
   unsigned long req_size;
@@ -69,6 +72,7 @@ struct enclave_sbi_param_t
   unsigned int *eid_ptr;
   unsigned long paddr;
   unsigned long size;
+  unsigned int enclave_class;
   unsigned long entry_point;
   unsigned long untrusted_ptr;
   unsigned long untrusted_size;
