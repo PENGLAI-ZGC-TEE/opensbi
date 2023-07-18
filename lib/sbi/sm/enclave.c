@@ -269,7 +269,7 @@ struct enclave_t* get_enclave(int eid)
 	//haven't alloc this eid
 	if(!found)
 	{
-		printm("[Penglai Monitor@%s]  haven't alloc this enclave\r\n", __func__);
+		printm_err("[Penglai Monitor@%s]  haven't alloc this enclave\r\n", __func__);
 		enclave = NULL;
 	}
 
@@ -280,6 +280,7 @@ struct enclave_t* get_enclave(int eid)
 int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 {
 	//grant encalve access to memory
+	printm_err("enter enclave_class = %d\n", enclave->enclave_class);
 	if(enclave->enclave_class == PMP_REGION)
 	{
 		if(grant_enclave_access(enclave) < 0)
@@ -343,7 +344,8 @@ int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 int swap_from_enclave_to_host(uintptr_t* regs, struct enclave_t* enclave)
 {
 	//retrieve enclave access to memory
-	if(enclave->enclave_class == PMP_REGION)
+	printm_err("exit enclave_class:%d\r\n", enclave->enclave_class);
+	if (enclave->enclave_class == PMP_REGION)
 		retrieve_enclave_access(enclave);
 	else
 		retrieve_spmp_enclave_access(enclave);
@@ -410,6 +412,7 @@ uintptr_t create_enclave(struct enclave_sbi_param_t create_args)
 	enclave->paddr = create_args.paddr;
 	enclave->size = create_args.size;
 	enclave->enclave_class = (create_args.enclave_class == PMP_TYPE) ? PMP_REGION : SPMP_REGION;
+	printm_err("create_args.enclave_clase = %d; enclave->enclave_class = %d\n", create_args.enclave_class, enclave->enclave_class);
 	enclave->entry_point = create_args.entry_point;
 	enclave->untrusted_ptr = create_args.untrusted_ptr;
 	enclave->untrusted_size = create_args.untrusted_size;
@@ -506,7 +509,10 @@ uintptr_t run_enclave(uintptr_t* regs, unsigned int eid)
 		goto run_enclave_out;
 	}
 
-	if (swap_from_host_to_enclave(regs, enclave) < 0)
+	printm_err("enter eid: %d\r\n", eid);
+	printm_err("enter enclave->eid: %d\r\n", enclave->eid);
+
+	if (swap_from_host_to_enclave(regs, enclave) < 0) 
 	{
 		printm("[Penglai Monitor@%s] enclave can not be run\r\n", __func__);
 		retval = -1UL;
@@ -773,7 +779,8 @@ uintptr_t exit_enclave(uintptr_t* regs, unsigned long retval)
 		spin_unlock(&enclave_metadata_lock);
 		return -1UL;
 	}
-
+	printm_err("exit eid:%d\r\n", eid);
+	printm_err("exit enclave->eid:%d\r\n", enclave->eid);
 	swap_from_enclave_to_host(regs, enclave);
 
 	//free enclave's memory

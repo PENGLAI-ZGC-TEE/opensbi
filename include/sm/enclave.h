@@ -39,7 +39,7 @@ typedef enum
 
 typedef enum
 {
-  PMP_REGION,
+  PMP_REGION = 0,
   SPMP_REGION,
 } enclave_class_t;
 

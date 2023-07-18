@@ -45,6 +45,7 @@ uintptr_t sm_mm_extend(enclave_class_t enclave_class, uintptr_t paddr, unsigned 
   uintptr_t retval = 0;
   printm("[Penglai Monitor] %s invoked\r\n",__func__);
 
+  printm_err("extend class:%#x\r\n", enclave_class);
   if (enclave_class == PMP_REGION)
     retval = mm_init(paddr, size);
   else
@@ -81,7 +82,7 @@ uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg)
   void* paddr = mm_alloc(mm_alloc_arg_local.req_size, &resp_size);
   if(paddr == NULL)
   {
-    printm("M mode: sm_alloc_enclave_mem: no enough memory\r\n");
+    printm_err("M mode: sm_alloc_enclave_mem: no enough memory\r\n");
     return ENCLAVE_NO_MEMORY;
   }
   dump_pmps();

@@ -1,6 +1,7 @@
 #include <sm/sm.h>
 #include <sm/enclave.h>
 #include <sm/platform/pmp/enclave_mm.h>
+#include <sm/platform/spmp_xs/enclave_mm.h>
 //#include <sm/atomic.h>
 #include <sbi/riscv_atomic.h>
 #include <sbi/riscv_locks.h>
@@ -18,7 +19,7 @@
  * TODO: this array can be removed as we can get
  * existing enclave regions via pmp registers
  */
-static struct mm_region_t mm_regions[N_PMP_REGIONS];
+struct mm_region_t mm_regions[N_PMP_REGIONS + N_SPMP_REGIONS];
 static unsigned long pmp_bitmap = 0;
 static spinlock_t pmp_bitmap_lock = SPIN_LOCK_INITIALIZER;
 
@@ -509,7 +510,7 @@ int grant_enclave_access(struct enclave_t* enclave)
 	}
 	spin_unlock(&pmp_bitmap_lock);
 
-	if(region_idx >= N_PMP_REGIONS)
+	if(region_idx >= (N_PMP_REGIONS))
 	{
 		printm_err("M mode: grant_enclave_access: can not find exact mm_region\r\n");
 		return -1;
@@ -722,6 +723,8 @@ static struct mm_list_t* alloc_one_region(int region_idx, int order)
 {
 	if(!mm_regions[region_idx].valid || !mm_regions[region_idx].mm_list_head)
 	{
+		printm("mm_regions[region_idx].valid = %d\r\n", mm_regions[region_idx].valid);
+		printm("mm_regions[region_idx].mm_list_head = %p\r\n", mm_regions[region_idx].mm_list_head);
 		printm("M mode: alloc_one_region: m_regions[%d] is invalid/NULL\r\n", region_idx);
 		return NULL;
 	}
@@ -839,8 +842,11 @@ static int merge_regions(int region_idx, struct mm_list_head_t* mm_list_head, st
 //remember to acquire lock before calling this function
 static int insert_mm_region(int region_idx, struct mm_list_t* mm_region, int merge)
 {
-	if(region_idx<0 || region_idx>=N_PMP_REGIONS || !mm_regions[region_idx].valid || !mm_region)
+	if (region_idx<0 || region_idx >= (N_PMP_REGIONS + N_SPMP_REGIONS) || !mm_regions[region_idx].valid || !mm_region) {
+		printm_err("insert mm region error\r\n");
 		return -1;
+	}
+
 
 	struct mm_list_head_t* mm_list_head = mm_regions[region_idx].mm_list_head;
 	struct mm_list_head_t* prev_list_head = NULL;
@@ -954,7 +960,8 @@ void* mm_alloc(unsigned long req_size, unsigned long *resp_size)
 	//print_buddy_system();
 
 	unsigned long order = ilog2(req_size-1) + 1;
-	for(int region_idx=0; region_idx < N_PMP_REGIONS; ++region_idx)
+	/* N_SPMP_REGION should be judged first */
+	for(int region_idx = N_PMP_REGIONS; region_idx < N_SPMP_REGIONS + N_PMP_REGIONS; ++region_idx)
 	{
 		struct mm_list_t* mm_region = alloc_one_region(region_idx, order);
 
@@ -964,6 +971,7 @@ void* mm_alloc(unsigned long req_size, unsigned long *resp_size)
 
 		while(mm_region->order > order)
 		{
+			printm("Need to alloc new region\n");
 			//allocated mm region need to be split
 			mm_region->order -= 1;
 			mm_region->prev_mm = NULL;
@@ -1014,14 +1022,14 @@ int mm_free(void* req_paddr, unsigned long free_size)
 
 	//print_buddy_system();
 
-	for(region_idx=0; region_idx < N_PMP_REGIONS; ++region_idx)
+	for(region_idx=0; region_idx < N_PMP_REGIONS + N_SPMP_REGIONS; ++region_idx)
 	{
 		if(mm_regions[region_idx].valid && region_contain(mm_regions[region_idx].paddr, mm_regions[region_idx].size, paddr, size))
 		{
 			break;
 		}
 	}
-	if(region_idx >= N_PMP_REGIONS)
+	if(region_idx >= (N_PMP_REGIONS + N_SPMP_REGIONS))
 	{
 		printm("mm_free: buddy system doesn't contain memory(addr 0x%lx, order %ld)\r\n", paddr, order);
 		ret_val = -1;

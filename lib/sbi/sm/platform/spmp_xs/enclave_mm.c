@@ -8,7 +8,8 @@
 #include <sm/math.h>
 #include <sbi/sbi_string.h>
 
-static struct mm_region_t mm_regions[N_SPMP_REGIONS];
+/* debug region */
+extern struct mm_region_t mm_regions[N_PMP_REGIONS + N_SPMP_REGIONS];
 static unsigned long spmp_bitmap = 0;
 static spinlock_t spmp_bitmap_lock = SPIN_LOCK_INITIALIZER;
 
@@ -35,9 +36,10 @@ uintptr_t mm_init_with_spmp(uintptr_t paddr, unsigned long size)
 	}
 
 	// alloc a free spmp
-	for(region_idx = 0; region_idx < N_SPMP_REGIONS; ++region_idx)
+	for(region_idx = N_PMP_REGIONS; region_idx < (N_PMP_REGIONS + N_SPMP_REGIONS); ++region_idx)
 	{
-		spmp_idx = region_idx;
+		printm_err("regiong idx:%d\n", region_idx);
+		spmp_idx = REGION_TO_SPMP(region_idx);
 		if(!(spmp_bitmap & (1 << spmp_idx)))
 		{
 			//FIXME: we already have mm_regions[x].valid, why pmp_bitmap again
@@ -45,7 +47,7 @@ uintptr_t mm_init_with_spmp(uintptr_t paddr, unsigned long size)
 			break;
 		}
 	}
-	if(region_idx >= N_SPMP_REGIONS)
+	if(region_idx >= N_PMP_REGIONS + N_SPMP_REGIONS)
 	{
 		retval = -1UL;
 		goto out;
@@ -58,6 +60,9 @@ uintptr_t mm_init_with_spmp(uintptr_t paddr, unsigned long size)
 	spmp_config.mode = SPMP_NAPOT;
 	set_spmp(spmp_idx, spmp_config);
 
+	printm("The region idx is %d\n", region_idx);
+	printm("The region idx valid before is %d\n", mm_regions[region_idx].valid);
+	printm("The mm_list_head enclave_class before is %p\n", mm_regions[region_idx].mm_list_head);
 	// mark this region is valid and init mm_list
 	mm_regions[region_idx].valid = 1;
 	mm_regions[region_idx].paddr = paddr;
@@ -73,7 +78,9 @@ uintptr_t mm_init_with_spmp(uintptr_t paddr, unsigned long size)
 	mm_list_head->next_list_head = NULL;
 	mm_list_head->mm_list = mm_list;
 	mm_regions[region_idx].mm_list_head = mm_list_head;
-
+	printm("The region idx valid after is %d\n", mm_regions[region_idx].valid);
+	printm("The mm_list_head enclave_class after is %p\n", mm_regions[region_idx].mm_list_head);
+	
 out:
 	spin_unlock(&spmp_bitmap_lock);
 	return retval;
@@ -91,8 +98,9 @@ int grant_spmp_enclave_access(struct enclave_t* enclave)
 	//set spmp permission, ensure that enclave's paddr and size is pmp legal
 	//TODO: support multiple memory regions
 	spin_lock(&spmp_bitmap_lock);
-	for(region_idx = 0; region_idx < N_SPMP_REGIONS; ++region_idx)
+	for(region_idx = N_PMP_REGIONS; region_idx < N_PMP_REGIONS + N_SPMP_REGIONS; ++region_idx)
 	{
+		printm_err("encter region idx:%d\n", region_idx);
 		if(mm_regions[region_idx].valid && region_contain(
 					mm_regions[region_idx].paddr, mm_regions[region_idx].size,
 					enclave->paddr, enclave->size))
@@ -102,9 +110,9 @@ int grant_spmp_enclave_access(struct enclave_t* enclave)
 	}
 	spin_unlock(&spmp_bitmap_lock);
 
-	if(region_idx >= N_SPMP_REGIONS)
+	if(region_idx >= N_PMP_REGIONS + N_SPMP_REGIONS || region_idx < N_PMP_REGIONS)
 	{
-		printm_err("M mode: grant_enclave_access: can not find exact mm_region\r\n");
+		printm_err("SPMP M mode: grant_enclave_access: can not find exact mm_region\r\n");
 		return -1;
 	}
 
@@ -143,8 +151,9 @@ int retrieve_spmp_enclave_access(struct enclave_t *enclave)
 	//set spmp permission, ensure that enclave's paddr and size is spmp legal
 	//TODO: support multiple memory regions
 	spin_lock(&spmp_bitmap_lock);
-	for(region_idx = 0; region_idx < N_SPMP_REGIONS; ++region_idx)
+	for(region_idx = N_PMP_REGIONS; region_idx < N_PMP_REGIONS + N_SPMP_REGIONS; ++region_idx)
 	{
+		printm_err("back region idx:%d\n", region_idx);
 		if(mm_regions[region_idx].valid && region_contain(
 					mm_regions[region_idx].paddr, mm_regions[region_idx].size,
 					enclave->paddr, enclave->size))
@@ -154,7 +163,7 @@ int retrieve_spmp_enclave_access(struct enclave_t *enclave)
 	}
 	spin_unlock(&spmp_bitmap_lock);
 
-	if(region_idx >= N_SPMP_REGIONS)
+	if(region_idx >= N_PMP_REGIONS + N_SPMP_REGIONS)
 	{
 		printm_err("M mode: Error: %s\r\n", __func__);
 		/* For Debug */
@@ -182,3 +191,57 @@ int retrieve_spmp_enclave_access(struct enclave_t *enclave)
 
 	return 0;
 }
+
+// void* mm_alloc_with_spmp(unsigned long req_size, unsigned long *resp_size)
+// {
+// 	void* ret_addr = NULL;
+// 	if(req_size == 0)
+// 		return ret_addr;
+
+// 	//TODO: reduce lock granularity
+// 	spin_lock(&spmp_bitmap_lock);
+
+// 	//print_buddy_system();
+
+// 	unsigned long order = ilog2(req_size-1) + 1;
+// 	/* N_SPMP_REGION should be judged first */
+// 	for(int region_idx = N_PMP_REGIONS; region_idx < N_SPMP_REGIONS + N_PMP_REGIONS; ++region_idx)
+// 	{
+// 		struct mm_list_t* mm_region = alloc_one_region(region_idx, order);
+
+// 		//there is no enough space in current pmp region
+// 		if(!mm_region)
+// 			continue;
+
+// 		while(mm_region->order > order)
+// 		{
+// 			printm("Need to alloc new region\n");
+// 			//allocated mm region need to be split
+// 			mm_region->order -= 1;
+// 			mm_region->prev_mm = NULL;
+// 			mm_region->next_mm = NULL;
+
+// 			void* new_mm_region_paddr = MM_LIST_2_PADDR(mm_region) + (1 << mm_region->order);
+// 			struct mm_list_t* new_mm_region = PADDR_2_MM_LIST(new_mm_region_paddr);
+// 			new_mm_region->order = mm_region->order;
+// 			new_mm_region->prev_mm = NULL;
+// 			new_mm_region->next_mm = NULL;
+// 			insert_mm_region(region_idx, new_mm_region, 0);
+// 		}
+
+// 		ret_addr = MM_LIST_2_PADDR(mm_region);
+// 		break;
+// 	}
+
+// 	//print_buddy_system();
+
+// 	spin_unlock(&spmp_bitmap_lock);
+
+// 	if(ret_addr && resp_size)
+// 	{
+// 		*resp_size = 1 << order;
+// 		sbi_memset(ret_addr, 0, *resp_size);
+// 	}
+
+// 	return ret_addr;
+// }
