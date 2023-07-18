@@ -118,10 +118,12 @@ uintptr_t sm_create_enclave(uintptr_t enclave_sbi_param)
   uintptr_t retval = 0;
 
   printm("[Penglai Monitor] %s invoked\r\n",__func__);
+  printm_err("[M]before copy from host: enclave_sbi_param_local->enclave_class: %d\r\n", enclave_sbi_param_local.enclave_class);
 
   retval = copy_from_host(&enclave_sbi_param_local,
       (struct enclave_sbi_param_t*)enclave_sbi_param,
       sizeof(struct enclave_sbi_param_t));
+  printm_err("[M]after copy from host: enclave_sbi_param_local->enclave_class: %d\r\n", enclave_sbi_param_local.enclave_class);
   if(retval != 0)
   {
     printm_err("M mode: sm_create_enclave: unknown error happended when copy from host\r\n");

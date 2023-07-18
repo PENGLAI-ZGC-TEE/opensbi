@@ -116,7 +116,7 @@ int grant_spmp_enclave_access(struct enclave_t* enclave)
 		return -1;
 	}
 
-	spmp_idx = region_idx;
+	spmp_idx = REGION_TO_SPMP(region_idx);
 #if 0
 	pmp_config.paddr = enclave->paddr;
 	pmp_config.size = enclave->size;
@@ -178,7 +178,7 @@ int retrieve_spmp_enclave_access(struct enclave_t *enclave)
 		return -1;
 	}
 
-	spmp_idx = region_idx;
+	spmp_idx = REGION_TO_SPMP(region_idx);
 
 	// set PMP to protect the entire PMP region
 	spmp_config.paddr = mm_regions[region_idx].paddr;

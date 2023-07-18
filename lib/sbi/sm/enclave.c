@@ -412,7 +412,7 @@ uintptr_t create_enclave(struct enclave_sbi_param_t create_args)
 	enclave->paddr = create_args.paddr;
 	enclave->size = create_args.size;
 	enclave->enclave_class = (create_args.enclave_class == PMP_TYPE) ? PMP_REGION : SPMP_REGION;
-	printm_err("create_args.enclave_clase = %d; enclave->enclave_class = %d\n", create_args.enclave_class, enclave->enclave_class);
+	printm_err("[M]create_args.enclave_clase = %d; enclave->enclave_class = %d\n", create_args.enclave_class, enclave->enclave_class);
 	enclave->entry_point = create_args.entry_point;
 	enclave->untrusted_ptr = create_args.untrusted_ptr;
 	enclave->untrusted_size = create_args.untrusted_size;
