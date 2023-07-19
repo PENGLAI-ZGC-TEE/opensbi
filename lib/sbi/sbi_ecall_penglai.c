@@ -32,7 +32,7 @@ static int sbi_ecall_penglai_host_handler(unsigned long extid, unsigned long fun
 			ret = sm_mm_extend(regs->a0, regs->a1, regs->a2);
 			break;
 		case SBI_ALLOC_ENCLAVE_MM:
-			ret = sm_alloc_enclave_mem(regs->a0);
+			ret = sm_alloc_enclave_mem(regs->a0, regs->a1);
 			break;
 		case SBI_CREATE_ENCLAVE:
 			ret = sm_create_enclave(regs->a0);

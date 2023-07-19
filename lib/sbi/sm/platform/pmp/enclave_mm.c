@@ -675,6 +675,8 @@ static int delete_certain_region(int region_idx, struct mm_list_head_t** mm_list
 	struct mm_list_t* next_mm = mm_region->next_mm;
 	struct mm_list_head_t* prev_list_head = (*mm_list_head)->prev_list_head;
 	struct mm_list_head_t* next_list_head = (*mm_list_head)->next_list_head;
+	
+	printm_err("[M]enter delete_certain_region = %p\r\n", mm_regions[13].mm_list_head);
 
 	//delete mm_region from old mm_list
 	//mm_region is in the middle of the mm_list
@@ -695,8 +697,11 @@ static int delete_certain_region(int region_idx, struct mm_list_head_t** mm_list
 		new_list_head->mm_list = next_mm;
 		if(prev_list_head)
 			prev_list_head->next_list_head = new_list_head;
-		else
+		else{
+			printm_err("[M]before first assignment = %p\r\n", mm_regions[13].mm_list_head);
 			mm_regions[region_idx].mm_list_head = new_list_head;
+			printm_err("[M]after first assignment = %p\r\n", mm_regions[13].mm_list_head);
+		}
 		if(next_list_head)
 			next_list_head->prev_list_head = new_list_head;
 
@@ -707,8 +712,11 @@ static int delete_certain_region(int region_idx, struct mm_list_head_t** mm_list
 	{
 		if(prev_list_head)
 			prev_list_head->next_list_head = next_list_head;
-		else
+		else{
+			printm_err("[M]before second assignment = %p\r\n", mm_regions[13].mm_list_head);
 			mm_regions[region_idx].mm_list_head = next_list_head;
+			printm_err("[M]after second assignment = %p\r\n", mm_regions[13].mm_list_head);
+		}
 		if(next_list_head)
 			next_list_head->prev_list_head = prev_list_head;
 
@@ -723,9 +731,9 @@ static struct mm_list_t* alloc_one_region(int region_idx, int order)
 {
 	if(!mm_regions[region_idx].valid || !mm_regions[region_idx].mm_list_head)
 	{
-		printm("mm_regions[region_idx].valid = %d\r\n", mm_regions[region_idx].valid);
-		printm("mm_regions[region_idx].mm_list_head = %p\r\n", mm_regions[region_idx].mm_list_head);
-		printm("M mode: alloc_one_region: m_regions[%d] is invalid/NULL\r\n", region_idx);
+		printm_err("mm_regions[region_idx].valid = %d\r\n", mm_regions[region_idx].valid);
+		printm_err("mm_regions[region_idx].mm_list_head = %p\r\n", mm_regions[region_idx].mm_list_head);
+		printm_err("M mode: alloc_one_region: m_regions[%d] is invalid/NULL\r\n", region_idx);
 		return NULL;
 	}
 
@@ -752,7 +760,7 @@ static struct mm_list_t* alloc_one_region(int region_idx, int order)
 //be sure that mm_list_head does exist in mm_lists
 static int merge_regions(int region_idx, struct mm_list_head_t* mm_list_head, struct mm_list_t *mm_region)
 {
-	if(region_idx<0 || region_idx>=N_PMP_REGIONS || !mm_list_head || !mm_region)
+	if(region_idx < 0 || region_idx >= (N_PMP_REGIONS + N_SPMP_REGIONS) || !mm_list_head || !mm_region)
 		return -1;
 	if(mm_list_head->order != mm_region->order)
 		return -1;
@@ -948,9 +956,10 @@ void print_buddy_system()
 	//spinlock_unlock(&pmp_bitmap_lock);
 }
 
-void* mm_alloc(unsigned long req_size, unsigned long *resp_size)
+void* mm_alloc(unsigned long req_size, unsigned long *resp_size, enclave_class_t enclave_class)
 {
-	void* ret_addr = NULL;
+	int region_idx = 0;
+	void *ret_addr = NULL;
 	if(req_size == 0)
 		return ret_addr;
 
@@ -959,12 +968,16 @@ void* mm_alloc(unsigned long req_size, unsigned long *resp_size)
 
 	//print_buddy_system();
 
+	printm_err("[M]out the alloc_one_region mm_regions[13].mm_list_head = %p\r\n", mm_regions[13].mm_list_head);
+	
 	unsigned long order = ilog2(req_size-1) + 1;
 	/* N_SPMP_REGION should be judged first */
-	for(int region_idx = N_PMP_REGIONS; region_idx < N_SPMP_REGIONS + N_PMP_REGIONS; ++region_idx)
+	for(region_idx = (enclave_class ? N_PMP_REGIONS : 0); 
+			region_idx < (enclave_class ? N_SPMP_REGIONS + N_PMP_REGIONS : N_PMP_REGIONS); ++region_idx)
 	{
 		struct mm_list_t* mm_region = alloc_one_region(region_idx, order);
 
+		printm_err("[M] test[%d]: mm_regions[13].mm_list_head = %p\r\n", region_idx, mm_regions[13].mm_list_head);
 		//there is no enough space in current pmp region
 		if(!mm_region)
 			continue;
@@ -995,10 +1008,14 @@ void* mm_alloc(unsigned long req_size, unsigned long *resp_size)
 
 	if(ret_addr && resp_size)
 	{
+		printm_err("[M]enter before sbi_memset = %p\r\n", mm_regions[13].mm_list_head);
 		*resp_size = 1 << order;
 		sbi_memset(ret_addr, 0, *resp_size);
+		printm_err("[M]enter after sbi_memset = %p\r\n", mm_regions[13].mm_list_head);
 	}
 
+	printm_err("[M]after the alloc_one_region mm_regions[13].mm_list_head = %p\r\n", mm_regions[13].mm_list_head);
+	printm_err("[M]ret_addr = %p\r\n", ret_addr);
 	return ret_addr;
 }
 

@@ -72,7 +72,7 @@ int retrieve_enclave_access(struct enclave_t *enclave);
 
 uintptr_t mm_init(uintptr_t paddr, unsigned long size);
 
-void* mm_alloc(unsigned long req_size, unsigned long* resp_size);
+void* mm_alloc(unsigned long req_size, unsigned long* resp_size, enclave_class_t enclave_class);
 
 int mm_free(void* paddr, unsigned long size);
 

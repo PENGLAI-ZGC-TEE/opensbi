@@ -71,11 +71,11 @@ static void switch_to_host_ptbr(struct thread_state_t* thread, uintptr_t ptbr)
 	platform_switch_to_host_ptbr(thread, ptbr);
 }
 
-struct link_mem_t* init_mem_link(unsigned long mem_size, unsigned long slab_size)
+struct link_mem_t* init_mem_link(unsigned long mem_size, unsigned long slab_size, enclave_class_t enclave_class)
 {
 	struct link_mem_t* head;
 
-	head = (struct link_mem_t*)mm_alloc(mem_size, NULL);
+	head = (struct link_mem_t*)mm_alloc(mem_size, NULL, enclave_class);
 
 	if (head == NULL)
 		return NULL;
@@ -92,11 +92,11 @@ struct link_mem_t* init_mem_link(unsigned long mem_size, unsigned long slab_size
 	return head;
 }
 
-struct link_mem_t* add_link_mem(struct link_mem_t** tail)
+struct link_mem_t* add_link_mem(struct link_mem_t** tail, enclave_class_t enclave_class)
 {
 	struct link_mem_t* new_link_mem;
 
-	new_link_mem = (struct link_mem_t*)mm_alloc((*tail)->mem_size, NULL);
+	new_link_mem = (struct link_mem_t*)mm_alloc((*tail)->mem_size, NULL, enclave_class);
 
 	if (new_link_mem == NULL)
 		return NULL;
@@ -146,7 +146,7 @@ int remove_link_mem(struct link_mem_t** head, struct link_mem_t* ptr)
  * alloc an enclave struct now, which is zeroed
  * Note: do not acquire metadata lock before the function!
  * */
-static struct enclave_t* alloc_enclave()
+static struct enclave_t* alloc_enclave(enclave_class_t enclave_class)
 {
 	struct link_mem_t *cur, *next;
 	struct enclave_t* enclave = NULL;
@@ -157,7 +157,7 @@ static struct enclave_t* alloc_enclave()
 	//enclave metadata list hasn't be initialized yet
 	if(enclave_metadata_head == NULL)
 	{
-		enclave_metadata_head = init_mem_link(ENCLAVE_METADATA_REGION_SIZE, sizeof(struct enclave_t));
+		enclave_metadata_head = init_mem_link(ENCLAVE_METADATA_REGION_SIZE, sizeof(struct enclave_t), enclave_class);
 		if(!enclave_metadata_head)
 		{
 			printm("[Penglai Monitor@%s] don't have enough mem\r\n", __func__);
@@ -190,7 +190,7 @@ static struct enclave_t* alloc_enclave()
 	//don't have enough enclave metadata
 	if(!found)
 	{
-		next = add_link_mem(&enclave_metadata_tail);
+		next = add_link_mem(&enclave_metadata_tail, enclave_class);
 		if(next == NULL)
 		{
 			printm("[Penglai Monitor@%s] don't have enough mem\r\n", __func__);
@@ -397,7 +397,7 @@ uintptr_t create_enclave(struct enclave_sbi_param_t create_args)
 	unsigned int eid;
 	uintptr_t retval = 0;
 
-	enclave = alloc_enclave();
+	enclave = alloc_enclave(create_args.enclave_class);
 	if(!enclave)
 	{
 		printm("[Penglai Monitor@%s] enclave allocation is failed \r\n", __func__);

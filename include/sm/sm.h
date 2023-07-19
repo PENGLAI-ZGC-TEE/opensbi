@@ -59,7 +59,7 @@ uintptr_t sm_mm_init(enclave_class_t enclave_class, uintptr_t paddr, unsigned lo
 
 uintptr_t sm_mm_extend(enclave_class_t enclave_class, uintptr_t paddr, unsigned long size);
 
-uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg);
+uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg, enclave_class_t enclave_class);
 
 uintptr_t sm_create_enclave(uintptr_t enclave_create_args);
 

@@ -61,7 +61,7 @@ uintptr_t sm_debug_print(uintptr_t* regs, uintptr_t arg0)
   return 0;
 }
 
-uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg)
+uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg, enclave_class_t enclave_class)
 {
   struct mm_alloc_arg_t mm_alloc_arg_local;
   uintptr_t retval = 0;
@@ -79,9 +79,9 @@ uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg)
 
   dump_pmps();
   unsigned long resp_size = 0;
-  void* paddr = mm_alloc(mm_alloc_arg_local.req_size, &resp_size);
-  if(paddr == NULL)
-  {
+  void* paddr = mm_alloc(mm_alloc_arg_local.req_size, &resp_size, enclave_class);
+  printm("[M] paddr is 0x%p\r\n", paddr);
+  if (paddr == NULL) {
     printm_err("M mode: sm_alloc_enclave_mem: no enough memory\r\n");
     return ENCLAVE_NO_MEMORY;
   }
@@ -107,6 +107,7 @@ uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg)
     return ENCLAVE_ERROR;
   }
 
+	printm_err("[M]sm_alloc_enclave_mem regions[13].mm_list_head = %p\r\n", mm_regions[13].mm_list_head);
   printm("[Penglai Monitor] %s return:%ld\r\n",__func__, retval);
 
   return ENCLAVE_SUCCESS;
@@ -131,6 +132,7 @@ uintptr_t sm_create_enclave(uintptr_t enclave_sbi_param)
   }
 
   void* paddr = (void*)enclave_sbi_param_local.paddr;
+  printm_err("[M]after copy from host: paddr: %p\r\n", paddr);
   unsigned long size = (unsigned long)enclave_sbi_param_local.size;
   if(retrieve_kernel_access(paddr, size) != 0)
   {
