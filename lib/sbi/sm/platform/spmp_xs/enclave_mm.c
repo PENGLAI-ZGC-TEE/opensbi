@@ -38,7 +38,7 @@ uintptr_t mm_init_with_spmp(uintptr_t paddr, unsigned long size)
 	// alloc a free spmp
 	for(region_idx = N_PMP_REGIONS; region_idx < (N_PMP_REGIONS + N_SPMP_REGIONS); ++region_idx)
 	{
-		printm_err("regiong idx:%d\n", region_idx);
+		printm_err("regiong idx:%d", region_idx);
 		spmp_idx = REGION_TO_SPMP(region_idx);
 		if(!(spmp_bitmap & (1 << spmp_idx)))
 		{
@@ -60,9 +60,9 @@ uintptr_t mm_init_with_spmp(uintptr_t paddr, unsigned long size)
 	spmp_config.mode = SPMP_NAPOT;
 	set_spmp(spmp_idx, spmp_config);
 
-	printm("The region idx is %d\n", region_idx);
-	printm("The region idx valid before is %d\n", mm_regions[region_idx].valid);
-	printm("The mm_list_head enclave_class before is %p\n", mm_regions[region_idx].mm_list_head);
+	printm("The region idx is %d.", region_idx);
+	printm("The region idx valid before is %d.", mm_regions[region_idx].valid);
+	printm("The mm_list_head enclave_class before is %p.", mm_regions[region_idx].mm_list_head);
 	// mark this region is valid and init mm_list
 	mm_regions[region_idx].valid = 1;
 	mm_regions[region_idx].paddr = paddr;
@@ -78,8 +78,8 @@ uintptr_t mm_init_with_spmp(uintptr_t paddr, unsigned long size)
 	mm_list_head->next_list_head = NULL;
 	mm_list_head->mm_list = mm_list;
 	mm_regions[region_idx].mm_list_head = mm_list_head;
-	printm("The region idx valid after is %d\n", mm_regions[region_idx].valid);
-	printm("The mm_list_head enclave_class after is %p\n", mm_regions[region_idx].mm_list_head);
+	printm("The region idx valid after is %d.", mm_regions[region_idx].valid);
+	printm("The mm_list_head enclave_class after is %p.", mm_regions[region_idx].mm_list_head);
 	
 out:
 	spin_unlock(&spmp_bitmap_lock);
@@ -100,7 +100,7 @@ int grant_spmp_enclave_access(struct enclave_t* enclave)
 	spin_lock(&spmp_bitmap_lock);
 	for(region_idx = N_PMP_REGIONS; region_idx < N_PMP_REGIONS + N_SPMP_REGIONS; ++region_idx)
 	{
-		printm_err("encter region idx:%d\n", region_idx);
+		printm("enter region idx:%d", region_idx);
 		if(mm_regions[region_idx].valid && region_contain(
 					mm_regions[region_idx].paddr, mm_regions[region_idx].size,
 					enclave->paddr, enclave->size))
@@ -132,12 +132,15 @@ int grant_spmp_enclave_access(struct enclave_t* enclave)
 
 	/*FIXME: we should handle the case that the sPMP region contains larger region */
 	if (spmp_config.paddr != enclave->paddr || spmp_config.size != enclave->size){
-		printm("[Penglai Monitor@%s] warning, region != enclave mem\n", __func__);
-		printm("[Penglai Monitor@%s] region: paddr(0x%lx) size(0x%lx)\n",
+		printm("[Penglai Monitor@%s] warning, region != enclave mem.", __func__);
+		printm("[Penglai Monitor@%s] region: paddr(0x%lx) size(0x%lx).",
 				__func__, spmp_config.paddr, spmp_config.size);
-		printm("[Penglai Monitor@%s] enclave mem: paddr(0x%lx) size(0x%lx)\n",
+		printm("[Penglai Monitor@%s] enclave mem: paddr(0x%lx) size(0x%lx).",
 				__func__, enclave->paddr, enclave->size);
 	}
+
+	uint64_t sstatus = csr_read(CSR_SSTATUS);
+	printm("sstatus after spmp status is:%#lx.", sstatus);
 
 	return 0;
 }
@@ -153,7 +156,7 @@ int retrieve_spmp_enclave_access(struct enclave_t *enclave)
 	spin_lock(&spmp_bitmap_lock);
 	for(region_idx = N_PMP_REGIONS; region_idx < N_PMP_REGIONS + N_SPMP_REGIONS; ++region_idx)
 	{
-		printm_err("back region idx:%d\n", region_idx);
+		printm_err("back region idx:%d.", region_idx);
 		if(mm_regions[region_idx].valid && region_contain(
 					mm_regions[region_idx].paddr, mm_regions[region_idx].size,
 					enclave->paddr, enclave->size))

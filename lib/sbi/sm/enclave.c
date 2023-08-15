@@ -280,7 +280,14 @@ struct enclave_t* get_enclave(int eid)
 int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 {
 	//grant encalve access to memory
-	printm_err("enter enclave_class = %d\n", enclave->enclave_class);
+	uint64_t sstatus = csr_read(CSR_MSTATUS);
+	printm("sstatus before is:%#lx.", sstatus);
+	sstatus = sstatus | 0x80000;
+	printm("sstatus after assigned is:%#lx.", sstatus);
+	csr_write(CSR_SSTATUS, sstatus);
+	sstatus = csr_read(CSR_SSTATUS);
+	printm("sstatus after csr_write is:%#lx.", sstatus);
+	printm("enter enclave_class = %d", enclave->enclave_class);
 	if(enclave->enclave_class == PMP_REGION)
 	{
 		if(grant_enclave_access(enclave) < 0)
@@ -333,6 +340,8 @@ int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 	mstatus = INSERT_FIELD(mstatus, MSTATUS_FS, 0x3); // enable float
 	host_regs[33] = mstatus;
 
+	sstatus = csr_read(CSR_SSTATUS);
+	printm("sstatus before enter enclave is:%#lx.", sstatus);
 	//mark that cpu is in enclave world now
 	enter_enclave_world(enclave->eid);
 
@@ -344,7 +353,7 @@ int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 int swap_from_enclave_to_host(uintptr_t* regs, struct enclave_t* enclave)
 {
 	//retrieve enclave access to memory
-	printm_err("exit enclave_class:%d\r\n", enclave->enclave_class);
+	printm_err("exit enclave_class:%d.", enclave->enclave_class);
 	if (enclave->enclave_class == PMP_REGION)
 		retrieve_enclave_access(enclave);
 	else
@@ -400,7 +409,7 @@ uintptr_t create_enclave(struct enclave_sbi_param_t create_args)
 	enclave = alloc_enclave(create_args.enclave_class);
 	if(!enclave)
 	{
-		printm("[Penglai Monitor@%s] enclave allocation is failed \r\n", __func__);
+		printm("[Penglai Monitor@%s] enclave allocation is failed", __func__);
 		sbi_memset((void*)(create_args.paddr), 0, create_args.size);
 		mm_free((void*)(create_args.paddr), create_args.size);
 		return ENCLAVE_ERROR;
@@ -412,7 +421,7 @@ uintptr_t create_enclave(struct enclave_sbi_param_t create_args)
 	enclave->paddr = create_args.paddr;
 	enclave->size = create_args.size;
 	enclave->enclave_class = (create_args.enclave_class == PMP_TYPE) ? PMP_REGION : SPMP_REGION;
-	printm_err("[M]create_args.enclave_clase = %d; enclave->enclave_class = %d\n", create_args.enclave_class, enclave->enclave_class);
+	printm("[M]create_args.enclave_clase = %d; enclave->enclave_class = %d", create_args.enclave_class, enclave->enclave_class);
 	enclave->entry_point = create_args.entry_point;
 	enclave->untrusted_ptr = create_args.untrusted_ptr;
 	enclave->untrusted_size = create_args.untrusted_size;
@@ -461,7 +470,7 @@ uintptr_t create_enclave(struct enclave_sbi_param_t create_args)
 		goto error_out;
 	}
 
-	printm("[Penglai Monitor@%s] return eid:%d\n",
+	printm("[Penglai Monitor@%s] return eid:%d.",
 			__func__, enclave->eid);
 
 	spin_unlock(&enclave_metadata_lock);
@@ -509,8 +518,8 @@ uintptr_t run_enclave(uintptr_t* regs, unsigned int eid)
 		goto run_enclave_out;
 	}
 
-	printm_err("enter eid: %d\r\n", eid);
-	printm_err("enter enclave->eid: %d\r\n", enclave->eid);
+	printm_err("enter eid: %d.", eid);
+	printm_err("enter enclave->eid: %d.", enclave->eid);
 
 	if (swap_from_host_to_enclave(regs, enclave) < 0) 
 	{

@@ -39,7 +39,7 @@ int platform_init()
   //set_pmp(NPMP-1, pmp_config);
   set_pmp_and_sync(NPMP - 1, pmp_config);
 
-  printm("[Penglai Monitor@%s] setting initial PMP ready\n", __func__);
+  printm("[Penglai Monitor@%s] setting initial PMP ready.", __func__);
   
   // printm("[Penglai Monitor@%s] PMP is ready, now setup sPMP\n", __func__);
 

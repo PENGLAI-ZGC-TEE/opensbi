@@ -21,13 +21,13 @@ uintptr_t sm_mm_init(enclave_class_t enclave_class, uintptr_t paddr, unsigned lo
 {
   uintptr_t retval = 0;
 
-  printm("[Penglai Monitor] %s invoked\r\n",__func__);
+  printm("[Penglai Monitor] %s invoked",__func__);
 
-  printm("[Penglai Monitor] %s paddr:0x%lx, size:0x%lx\r\n",__func__, paddr, size);
+  printm("[Penglai Monitor] %s paddr:0x%lx, size:0x%lx",__func__, paddr, size);
   /*DEBUG: Dump PMP registers here */
   dump_pmps();
 
-  printm_err("class:%#x\r\n", enclave_class);
+  printm_err("class:%#x", enclave_class);
   if (enclave_class == PMP_REGION)
 	  retval = mm_init(paddr, size);
   else
@@ -36,7 +36,7 @@ uintptr_t sm_mm_init(enclave_class_t enclave_class, uintptr_t paddr, unsigned lo
   /*DEBUG: Dump PMP registers here */
   dump_pmps();
 
-  printm("[Penglai Monitor] %s ret:%ld \r\n",__func__, retval);
+  printm("[Penglai Monitor] %s ret:%ld",__func__, retval);
   return retval;
 }
 
@@ -107,7 +107,7 @@ uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg, enclave_class_t enclave_c
     return ENCLAVE_ERROR;
   }
 
-	printm_err("[M]sm_alloc_enclave_mem regions[13].mm_list_head = %p\r\n", mm_regions[13].mm_list_head);
+	printm_err("[M]sm_alloc_enclave_mem regions[13].mm_list_head = %p", mm_regions[13].mm_list_head);
   printm("[Penglai Monitor] %s return:%ld\r\n",__func__, retval);
 
   return ENCLAVE_SUCCESS;
@@ -142,18 +142,18 @@ uintptr_t sm_create_enclave(uintptr_t enclave_sbi_param)
 
   retval = create_enclave(enclave_sbi_param_local);
 
-  printm("[Penglai Monitor] %s created return value:%ld \r\n",__func__, retval);
+  printm("[Penglai Monitor] %s created return value:%ld.",__func__, retval);
   return retval;
 }
 
 uintptr_t sm_attest_enclave(uintptr_t eid, uintptr_t report, uintptr_t nonce)
 {
   uintptr_t retval;
-  printm("[Penglai Monitor] %s invoked, eid:%ld\r\n",__func__, eid);
+  printm("[Penglai Monitor] %s invoked, eid:%ld.",__func__, eid);
 
   retval = attest_enclave(eid, report, nonce);
 
-  printm("[Penglai Monitor] %s return: %ld\r\n",__func__, retval);
+  printm("[Penglai Monitor] %s return: %ld.",__func__, retval);
 
   return retval;
 }
@@ -161,11 +161,13 @@ uintptr_t sm_attest_enclave(uintptr_t eid, uintptr_t report, uintptr_t nonce)
 uintptr_t sm_run_enclave(uintptr_t* regs, unsigned long eid)
 {
   uintptr_t retval;
-  printm("[Penglai Monitor] %s invoked, eid:%ld\r\n",__func__, eid);
+  printm("[Penglai Monitor] %s invoked, eid:%ld.",__func__, eid);
 
   retval = run_enclave(regs, (unsigned int)eid);
 
-  printm("[Penglai Monitor] %s return: %ld\r\n",__func__, retval);
+	uint64_t sstatus = csr_read(CSR_SSTATUS);
+	printm("sstatus after run_enclave is:%#lx.", sstatus);
+  printm("[Penglai Monitor] %s return: %ld.",__func__, retval);
 
   return retval;
 }
@@ -173,11 +175,11 @@ uintptr_t sm_run_enclave(uintptr_t* regs, unsigned long eid)
 uintptr_t sm_stop_enclave(uintptr_t* regs, unsigned long eid)
 {
   uintptr_t retval;
-  printm("[Penglai Monitor] %s invoked, eid:%ld\r\n",__func__, eid);
+  printm("[Penglai Monitor] %s invoked, eid:%ld.",__func__, eid);
 
   retval = stop_enclave(regs, (unsigned int)eid);
 
-  printm("[Penglai Monitor] %s return: %ld\r\n",__func__, retval);
+  printm("[Penglai Monitor] %s return: %ld.",__func__, retval);
   return retval;
 }
 

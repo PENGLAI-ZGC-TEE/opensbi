@@ -74,10 +74,10 @@ static void MIRACL_Init()
     unsigned long seed;
 
     seed = sbi_timer_value();
-	printm("Initialize Penglai's random system with seed 0x%lx (sbi_timer_value)\n", seed);
+	printm("Initialize Penglai's random system with seed 0x%lx (sbi_timer_value).", seed);
 #ifdef PENGLAI_DEBUG
 	miracl *mip = mirsys(128, 16);
-	printm("MIRACL: pack: %d, nib: %d, big size: %ld, point size: %ld, workspace ptr: %lx\n",
+	printm("MIRACL: pack: %d, nib: %d, big size: %ld, point size: %ld, workspace ptr: %lx.",
 			mip->pack, mip->nib, mr_size(mip->nib-1),
 			mr_esize(mr_mip->nib-1), (unsigned long)mip->workspace);
 #else
