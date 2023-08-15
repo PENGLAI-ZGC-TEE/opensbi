@@ -282,11 +282,9 @@ int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 	//grant encalve access to memory
 	uint64_t sstatus = csr_read(CSR_MSTATUS);
 	printm("sstatus before is:%#lx.", sstatus);
-	sstatus = sstatus | 0x80000;
-	printm("sstatus after assigned is:%#lx.", sstatus);
-	csr_write(CSR_SSTATUS, sstatus);
+	csr_set(CSR_SSTATUS, 0x40000);
 	sstatus = csr_read(CSR_SSTATUS);
-	printm("sstatus after csr_write is:%#lx.", sstatus);
+	printm("sstatus after csr_set is:%#lx.", sstatus);
 	printm("enter enclave_class = %d", enclave->enclave_class);
 	if(enclave->enclave_class == PMP_REGION)
 	{
@@ -528,6 +526,9 @@ uintptr_t run_enclave(uintptr_t* regs, unsigned int eid)
 		goto run_enclave_out;
 	}
 
+	uint64_t sstatus = csr_read(CSR_SSTATUS);
+	printm("sstatus after swap to enclave status is:%#lx.", sstatus);
+	
 	//swap_prev_mepc(&(enclave->thread_context), regs[32]);
 	regs[32] = (uintptr_t)(enclave->entry_point); //In OpenSBI, we use regs to change mepc
 
@@ -543,6 +544,9 @@ uintptr_t run_enclave(uintptr_t* regs, unsigned int eid)
 	regs[13] = (uintptr_t)enclave->untrusted_size;
 
 	enclave->state = RUNNING;
+
+	sstatus = csr_read(CSR_SSTATUS);
+	printm("sstatus after setting state RUNNING status is:%#lx.", sstatus);
 
 run_enclave_out:
 	spin_unlock(&enclave_metadata_lock);
@@ -725,6 +729,9 @@ uintptr_t resume_enclave(uintptr_t* regs, unsigned int eid)
 		retval = -1UL;
 		goto resume_enclave_out;
 	}
+
+	uint64_t sstatus = csr_read(CSR_SSTATUS);
+	printm("sstatus after resume_enclave status is:%#lx.", sstatus);
 
 	enclave->state = RUNNING;
 

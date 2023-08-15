@@ -39,6 +39,8 @@ static int sbi_ecall_penglai_host_handler(unsigned long extid, unsigned long fun
 			break;
 		case SBI_RUN_ENCLAVE:
 			ret = sm_run_enclave((uintptr_t *)regs, regs->a0);
+			uint64_t sstatus = csr_read(CSR_SSTATUS);
+			printm("sstatus after sm_run_enclave status is:%#lx.", sstatus);
 			break;
 		case SBI_ATTEST_ENCLAVE:
 			ret = sm_attest_enclave(regs->a0, regs->a1, regs->a2);
