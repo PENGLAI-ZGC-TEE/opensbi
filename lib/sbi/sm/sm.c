@@ -21,11 +21,11 @@ uintptr_t sm_mm_init(enclave_class_t enclave_class, uintptr_t paddr, unsigned lo
 {
   uintptr_t retval = 0;
 
-  printm("[Penglai Monitor] %s invoked",__func__);
+  printm("[Penglai Monitor] %s invoked.",__func__);
 
-  printm("[Penglai Monitor] %s paddr:0x%lx, size:0x%lx",__func__, paddr, size);
+  printm("[Penglai Monitor] %s paddr:0x%lx, size:0x%lx.",__func__, paddr, size);
   /*DEBUG: Dump PMP registers here */
-  dump_pmps();
+  // dump_pmps();
 
   printm_err("class:%#x", enclave_class);
   if (enclave_class == PMP_REGION)
@@ -34,7 +34,7 @@ uintptr_t sm_mm_init(enclave_class_t enclave_class, uintptr_t paddr, unsigned lo
     retval = mm_init_with_spmp(paddr, size);
 
   /*DEBUG: Dump PMP registers here */
-  dump_pmps();
+  // dump_pmps();
 
   printm("[Penglai Monitor] %s ret:%ld",__func__, retval);
   return retval;
@@ -66,7 +66,7 @@ uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg, enclave_class_t enclave_c
   struct mm_alloc_arg_t mm_alloc_arg_local;
   uintptr_t retval = 0;
 
-  printm("[Penglai Monitor] %s invoked\r\n",__func__);
+  printm("[Penglai Monitor] %s invoked.",__func__);
 
   retval = copy_from_host(&mm_alloc_arg_local,
       (struct mm_alloc_arg_t*)mm_alloc_arg,
@@ -77,7 +77,7 @@ uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg, enclave_class_t enclave_c
     return ENCLAVE_ERROR;
   }
 
-  dump_pmps();
+  // dump_pmps();
   unsigned long resp_size = 0;
   void* paddr = mm_alloc(mm_alloc_arg_local.req_size, &resp_size, enclave_class);
   printm("[M] paddr is 0x%p\r\n", paddr);
@@ -85,7 +85,7 @@ uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg, enclave_class_t enclave_c
     printm_err("M mode: sm_alloc_enclave_mem: no enough memory\r\n");
     return ENCLAVE_NO_MEMORY;
   }
-  dump_pmps();
+  // dump_pmps();
 
   //grant kernel access to this memory
   if(grant_kernel_access(paddr, resp_size) != 0)
