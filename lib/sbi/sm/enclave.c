@@ -336,6 +336,7 @@ int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 	uintptr_t mstatus = host_regs[33]; //In OpenSBI, we use regs to change mstatus
 	mstatus = INSERT_FIELD(mstatus, MSTATUS_MPP, PRV_U);
 	mstatus = INSERT_FIELD(mstatus, MSTATUS_FS, 0x3); // enable float
+	mstatus = INSERT_FIELD(mstatus, MSTATUS_SUM, 0x1); // enable SUM
 	host_regs[33] = mstatus;
 
 	sstatus = csr_read(CSR_SSTATUS);
@@ -351,7 +352,7 @@ int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 int swap_from_enclave_to_host(uintptr_t* regs, struct enclave_t* enclave)
 {
 	//retrieve enclave access to memory
-	printm_err("exit enclave_class:%d.", enclave->enclave_class);
+	printm("exit enclave_class:%d.", enclave->enclave_class);
 	if (enclave->enclave_class == PMP_REGION)
 		retrieve_enclave_access(enclave);
 	else
@@ -387,9 +388,12 @@ int swap_from_enclave_to_host(uintptr_t* regs, struct enclave_t* enclave)
 #else
 	uintptr_t mstatus = regs[33]; //In OpenSBI, we use regs to change mstatus
 	mstatus = INSERT_FIELD(mstatus, MSTATUS_MPP, PRV_S);
+	mstatus = INSERT_FIELD(mstatus, MSTATUS_SUM, 0x0); // disable SUM
 	regs[33] = mstatus;
 #endif
 
+	uint64_t sstatus = csr_read(CSR_SSTATUS);
+	printm("sstatus before enter enclave is:%#lx.", sstatus);
 	//mark that cpu is out of enclave world now
 	exit_enclave_world();
 
@@ -795,8 +799,8 @@ uintptr_t exit_enclave(uintptr_t* regs, unsigned long retval)
 		spin_unlock(&enclave_metadata_lock);
 		return -1UL;
 	}
-	printm_err("exit eid:%d\r\n", eid);
-	printm_err("exit enclave->eid:%d\r\n", enclave->eid);
+	printm("exit eid:%d.", eid);
+	printm_err("exit enclave->eid:%d.", enclave->eid);
 	swap_from_enclave_to_host(regs, enclave);
 
 	//free enclave's memory
