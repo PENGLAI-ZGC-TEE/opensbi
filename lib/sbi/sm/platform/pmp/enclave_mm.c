@@ -676,7 +676,7 @@ static int delete_certain_region(int region_idx, struct mm_list_head_t** mm_list
 	struct mm_list_head_t* prev_list_head = (*mm_list_head)->prev_list_head;
 	struct mm_list_head_t* next_list_head = (*mm_list_head)->next_list_head;
 	
-	printm_err("[M]enter delete_certain_region = %p", mm_regions[13].mm_list_head);
+	printm("[M]enter delete_certain_region = %p", mm_regions[13].mm_list_head);
 
 	//delete mm_region from old mm_list
 	//mm_region is in the middle of the mm_list
@@ -713,9 +713,9 @@ static int delete_certain_region(int region_idx, struct mm_list_head_t** mm_list
 		if(prev_list_head)
 			prev_list_head->next_list_head = next_list_head;
 		else{
-			printm_err("[M]before second assignment = %p", mm_regions[13].mm_list_head);
+			printm("[M]before second assignment = %p", mm_regions[13].mm_list_head);
 			mm_regions[region_idx].mm_list_head = next_list_head;
-			printm_err("[M]after second assignment = %p", mm_regions[13].mm_list_head);
+			printm("[M]after second assignment = %p", mm_regions[13].mm_list_head);
 		}
 		if(next_list_head)
 			next_list_head->prev_list_head = prev_list_head;
@@ -977,7 +977,7 @@ void* mm_alloc(unsigned long req_size, unsigned long *resp_size, enclave_class_t
 	{
 		struct mm_list_t* mm_region = alloc_one_region(region_idx, order);
 
-		printm_err("[M] test[%d]: mm_regions[13].mm_list_head = %p", region_idx, mm_regions[13].mm_list_head);
+		printm("[M] test[%d]: mm_regions[13].mm_list_head = %p", region_idx, mm_regions[13].mm_list_head);
 		//there is no enough space in current pmp region
 		if(!mm_region)
 			continue;
@@ -1008,10 +1008,10 @@ void* mm_alloc(unsigned long req_size, unsigned long *resp_size, enclave_class_t
 
 	if(ret_addr && resp_size)
 	{
-		printm_err("[M]enter before sbi_memset = %p", mm_regions[13].mm_list_head);
+		printm("[M]enter before sbi_memset = %p", mm_regions[13].mm_list_head);
 		*resp_size = 1 << order;
 		sbi_memset(ret_addr, 0, *resp_size);
-		printm_err("[M]enter after sbi_memset = %p", mm_regions[13].mm_list_head);
+		printm("[M]enter after sbi_memset = %p", mm_regions[13].mm_list_head);
 	}
 
 	printm("[M]after the alloc_one_region mm_regions[13].mm_list_head = %p.", mm_regions[13].mm_list_head);

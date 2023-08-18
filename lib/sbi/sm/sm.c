@@ -27,7 +27,7 @@ uintptr_t sm_mm_init(enclave_class_t enclave_class, uintptr_t paddr, unsigned lo
   /*DEBUG: Dump PMP registers here */
   // dump_pmps();
 
-  printm_err("class:%#x", enclave_class);
+  printm("class:%#x", enclave_class);
   if (enclave_class == PMP_REGION)
 	  retval = mm_init(paddr, size);
   else
@@ -67,7 +67,7 @@ uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg, enclave_class_t enclave_c
   uintptr_t retval = 0;
 
   printm("[Penglai Monitor] %s invoked.",__func__);
-
+  // csr_set(CSR_SSTATUS, 0x40000);
   retval = copy_from_host(&mm_alloc_arg_local,
       (struct mm_alloc_arg_t*)mm_alloc_arg,
       sizeof(struct mm_alloc_arg_t));
@@ -119,7 +119,7 @@ uintptr_t sm_create_enclave(uintptr_t enclave_sbi_param)
   uintptr_t retval = 0;
 
   printm("[Penglai Monitor] %s invoked.",__func__);
-  printm_err("[M]before copy from host: enclave_sbi_param_local->enclave_class: %d.", enclave_sbi_param_local.enclave_class);
+  printm("[M]before copy from host: enclave_sbi_param_local->enclave_class: %d.", enclave_sbi_param_local.enclave_class);
 
   retval = copy_from_host(&enclave_sbi_param_local,
       (struct enclave_sbi_param_t*)enclave_sbi_param,
@@ -165,8 +165,7 @@ uintptr_t sm_run_enclave(uintptr_t* regs, unsigned long eid)
 
   retval = run_enclave(regs, (unsigned int)eid);
 
-	uint64_t sstatus = csr_read(CSR_SSTATUS);
-	printm("sstatus after run_enclave is:%#lx.", sstatus);
+	printm("sstatus after run_enclave is:%#lx.", csr_read(CSR_SSTATUS));
   printm("[Penglai Monitor] %s return: %ld.",__func__, retval);
 
   return retval;

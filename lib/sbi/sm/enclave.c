@@ -280,11 +280,9 @@ struct enclave_t* get_enclave(int eid)
 int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 {
 	//grant encalve access to memory
-	uint64_t sstatus = csr_read(CSR_MSTATUS);
-	printm("sstatus before is:%#lx.", sstatus);
+	printm("sstatus before is:%#lx.", csr_read(CSR_SSTATUS));
 	csr_set(CSR_SSTATUS, 0x40000);
-	sstatus = csr_read(CSR_SSTATUS);
-	printm("sstatus after csr_set is:%#lx.", sstatus);
+	printm("sstatus after csr_set is:%#lx.", csr_read(CSR_SSTATUS));
 	printm("enter enclave_class = %d", enclave->enclave_class);
 	if(enclave->enclave_class == PMP_REGION)
 	{
@@ -339,8 +337,7 @@ int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 	mstatus = INSERT_FIELD(mstatus, MSTATUS_SUM, 0x1); // enable SUM
 	host_regs[33] = mstatus;
 
-	sstatus = csr_read(CSR_SSTATUS);
-	printm("sstatus before enter enclave is:%#lx.", sstatus);
+	printm("sstatus before enter enclave is:%#lx.", csr_read(CSR_SSTATUS));
 	//mark that cpu is in enclave world now
 	enter_enclave_world(enclave->eid);
 
@@ -388,12 +385,10 @@ int swap_from_enclave_to_host(uintptr_t* regs, struct enclave_t* enclave)
 #else
 	uintptr_t mstatus = regs[33]; //In OpenSBI, we use regs to change mstatus
 	mstatus = INSERT_FIELD(mstatus, MSTATUS_MPP, PRV_S);
-	mstatus = INSERT_FIELD(mstatus, MSTATUS_SUM, 0x0); // disable SUM
 	regs[33] = mstatus;
 #endif
 
-	uint64_t sstatus = csr_read(CSR_SSTATUS);
-	printm("sstatus before enter enclave is:%#lx.", sstatus);
+	printm("sstatus before enter enclave is:%#lx.", csr_read(CSR_SSTATUS));
 	//mark that cpu is out of enclave world now
 	exit_enclave_world();
 
@@ -530,8 +525,7 @@ uintptr_t run_enclave(uintptr_t* regs, unsigned int eid)
 		goto run_enclave_out;
 	}
 
-	uint64_t sstatus = csr_read(CSR_SSTATUS);
-	printm("sstatus after swap to enclave status is:%#lx.", sstatus);
+	printm("sstatus after swap to enclave status is:%#lx.", csr_read(CSR_SSTATUS));
 	
 	//swap_prev_mepc(&(enclave->thread_context), regs[32]);
 	regs[32] = (uintptr_t)(enclave->entry_point); //In OpenSBI, we use regs to change mepc
@@ -549,8 +543,7 @@ uintptr_t run_enclave(uintptr_t* regs, unsigned int eid)
 
 	enclave->state = RUNNING;
 
-	sstatus = csr_read(CSR_SSTATUS);
-	printm("sstatus after setting state RUNNING status is:%#lx.", sstatus);
+	printm("sstatus after setting state RUNNING status is:%#lx.",csr_read(CSR_SSTATUS));
 
 run_enclave_out:
 	spin_unlock(&enclave_metadata_lock);
@@ -563,7 +556,7 @@ uintptr_t stop_enclave(uintptr_t* regs, unsigned int eid)
 	struct enclave_t *enclave = get_enclave(eid);
 	if(!enclave)
 	{
-		printm_err("[Penglai Monitor@%s] wrong enclave id%d\r\n", __func__, eid);
+		printm_err("[Penglai Monitor@%s] wrong enclave id%d.", __func__, eid);
 		return -1UL;
 	}
 
@@ -734,8 +727,7 @@ uintptr_t resume_enclave(uintptr_t* regs, unsigned int eid)
 		goto resume_enclave_out;
 	}
 
-	uint64_t sstatus = csr_read(CSR_SSTATUS);
-	printm("sstatus after resume_enclave status is:%#lx.", sstatus);
+	printm("sstatus after resume_enclave status is:%#lx.", csr_read(CSR_SSTATUS));
 
 	enclave->state = RUNNING;
 

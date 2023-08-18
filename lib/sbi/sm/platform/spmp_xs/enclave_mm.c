@@ -38,7 +38,7 @@ uintptr_t mm_init_with_spmp(uintptr_t paddr, unsigned long size)
 	// alloc a free spmp
 	for(region_idx = N_PMP_REGIONS; region_idx < (N_PMP_REGIONS + N_SPMP_REGIONS); ++region_idx)
 	{
-		printm_err("regiong idx:%d", region_idx);
+		printm("regiong idx:%d", region_idx);
 		spmp_idx = REGION_TO_SPMP(region_idx);
 		if(!(spmp_bitmap & (1 << spmp_idx)))
 		{
@@ -58,6 +58,7 @@ uintptr_t mm_init_with_spmp(uintptr_t paddr, unsigned long size)
 	spmp_config.size = size;
 	spmp_config.perm = SPMP_NO_PERM;
 	spmp_config.mode = SPMP_NAPOT;
+	spmp_config.sbit = SPMP_S;
 	set_spmp(spmp_idx, spmp_config);
 
 	printm("The region idx is %d.", region_idx);
@@ -139,8 +140,7 @@ int grant_spmp_enclave_access(struct enclave_t* enclave)
 				__func__, enclave->paddr, enclave->size);
 	}
 
-	uint64_t sstatus = csr_read(CSR_SSTATUS);
-	printm("sstatus after spmp status is:%#lx.", sstatus);
+	printm("sstatus after spmp status is:%#lx.", csr_read(CSR_SSTATUS));
 
 	return 0;
 }
@@ -156,7 +156,9 @@ int retrieve_spmp_enclave_access(struct enclave_t *enclave)
 	spin_lock(&spmp_bitmap_lock);
 	for(region_idx = N_PMP_REGIONS; region_idx < N_PMP_REGIONS + N_SPMP_REGIONS; ++region_idx)
 	{
-		printm_err("back region idx:%d.", region_idx);
+		printm("back region idx:%d.", region_idx);
+		
+		
 		if(mm_regions[region_idx].valid && region_contain(
 					mm_regions[region_idx].paddr, mm_regions[region_idx].size,
 					enclave->paddr, enclave->size))
@@ -187,6 +189,7 @@ int retrieve_spmp_enclave_access(struct enclave_t *enclave)
 	spmp_config.paddr = mm_regions[region_idx].paddr;
 	spmp_config.size = mm_regions[region_idx].size;
 	spmp_config.perm = SPMP_NO_PERM;
+	spmp_config.sbit = SPMP_S;
 	spmp_config.mode = SPMP_NAPOT;
 
 	/* Note: here we only set the PMP regions in local Hart*/

@@ -4,7 +4,7 @@
 #include <sbi/sbi_console.h>
 #include <sbi/sbi_string.h>
 
-#define PENGLAI_DEBUG
+// #define PENGLAI_DEBUG
 
 #define debug(M, ...) sbi_printf("[DEBUG] (%s:%d,%s) " M "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
