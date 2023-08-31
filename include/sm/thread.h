@@ -62,9 +62,29 @@ struct general_registers_t
   uintptr_t t6;
 };
 
+struct spmp_state_t {
+  uintptr_t spmpcfg0;
+  uintptr_t spmpcfg2;
+  uintptr_t spmpaddr0;
+  uintptr_t spmpaddr1;
+  uintptr_t spmpaddr2;
+  uintptr_t spmpaddr3;
+  uintptr_t spmpaddr4;
+  uintptr_t spmpaddr5;
+  uintptr_t spmpaddr6;
+  uintptr_t spmpaddr7;
+  uintptr_t spmpaddr8;
+  uintptr_t spmpaddr9;
+  uintptr_t spmpaddr10;
+  uintptr_t spmpaddr11;
+  uintptr_t spmpaddr12;
+  uintptr_t spmpaddr13;
+  uintptr_t spmpaddr14;
+  uintptr_t spmpaddr15;
+};
+
 /* enclave thread state */
-struct thread_state_t
-{
+struct thread_state_t {
   uintptr_t encl_ptbr;
   uintptr_t prev_stvec;
   uintptr_t prev_mie;
@@ -73,6 +93,7 @@ struct thread_state_t
   uintptr_t prev_mepc;
   uintptr_t prev_cache_binding;
   struct general_registers_t prev_state;
+  struct spmp_state_t prev_spmp;
 };
 
 /* swap previous and current thread states */
@@ -83,4 +104,6 @@ void swap_prev_cache_binding(struct thread_state_t* state, uintptr_t cache_bindi
 void swap_prev_mie(struct thread_state_t* state, uintptr_t mie);
 void swap_prev_mideleg(struct thread_state_t* state, uintptr_t mideleg);
 void swap_prev_medeleg(struct thread_state_t* state, uintptr_t medeleg);
+void swap_prev_spmp(struct thread_state_t *state, uintptr_t *spmp_state);
+
 #endif /* thread */

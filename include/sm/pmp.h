@@ -92,7 +92,6 @@ do { \
 	SBI_HARTMASK_INIT_EXCEPT(&(__ptr)->smask, (__src)); \
 } while (0)
 
-
 void set_pmp_and_sync(int pmp_idx, struct pmp_config_t);
 void clear_pmp_and_sync(int pmp_idx);
 void set_pmp(int pmp_idx, struct pmp_config_t);

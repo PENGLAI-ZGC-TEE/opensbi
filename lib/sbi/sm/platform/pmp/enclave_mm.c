@@ -302,7 +302,7 @@ uintptr_t copy_from_enclave(pte_t *enclave_root_pt, void* dest_pa, void* src_enc
 	uintptr_t left_size = size;
 	uintptr_t copy_size;
 	if (page_left >= left_size) {
-		// do copy
+		// do copy in one time
 		copy_size = left_size;
 		src_pa = get_enclave_paddr_from_va(enclave_root_pt, (uintptr_t)src_enclave_va);
 		if(src_pa == 0)
@@ -436,6 +436,7 @@ int check_mem_size(uintptr_t paddr, unsigned long size)
 int grant_kernel_access(void* req_paddr, unsigned long size)
 {
 	//pmp1 is used for allowing kernel to access enclave memory
+	printm("*** Enter grant kernel access ***, the req_addr is %p, the size is %#lx", req_paddr, size);
 	int pmp_idx = 1;
 	struct pmp_config_t pmp_config;
 	uintptr_t paddr = (uintptr_t)req_paddr;
@@ -469,6 +470,7 @@ int grant_kernel_access(void* req_paddr, unsigned long size)
 int retrieve_kernel_access(void* req_paddr, unsigned long size)
 {
 	//pmp1 is used for allowing kernel to access enclave memory
+	printm("*** Enter retrieve kernel access ***, the req_addr is %p, the size is %#lx", req_paddr, size);
 	int pmp_idx = 1;
 	struct pmp_config_t pmp_config;
 	uintptr_t paddr = (uintptr_t)req_paddr;
@@ -855,7 +857,6 @@ static int insert_mm_region(int region_idx, struct mm_list_t* mm_region, int mer
 		return -1;
 	}
 
-
 	struct mm_list_head_t* mm_list_head = mm_regions[region_idx].mm_list_head;
 	struct mm_list_head_t* prev_list_head = NULL;
 
@@ -968,7 +969,7 @@ void* mm_alloc(unsigned long req_size, unsigned long *resp_size, enclave_class_t
 
 	//print_buddy_system();
 
-	printm_err("[M]out the alloc_one_region mm_regions[13].mm_list_head = %p", mm_regions[13].mm_list_head);
+	printm("[M]out the alloc_one_region mm_regions[13].mm_list_head = %p", mm_regions[13].mm_list_head);
 	
 	unsigned long order = ilog2(req_size-1) + 1;
 	/* N_SPMP_REGION should be judged first */
@@ -1064,7 +1065,7 @@ int mm_free(void* req_paddr, unsigned long free_size)
 			unsigned long region_size = 1 << mm_region->order;
 			if(region_overlap(paddr, size, region_paddr, region_size))
 			{
-				printm("mm_free: memory(addr 0x%lx order %ld) overlap with free memory(addr 0x%lx order %d)\r\n", paddr, order, region_paddr, mm_region->order);
+				printm_err("mm_free: memory(addr 0x%lx order %ld) overlap with free memory(addr 0x%lx order %d)\r\n", paddr, order, region_paddr, mm_region->order);
 				ret_val = -1;
 				break;
 			}

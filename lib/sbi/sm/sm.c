@@ -80,7 +80,7 @@ uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg, enclave_class_t enclave_c
   // dump_pmps();
   unsigned long resp_size = 0;
   void* paddr = mm_alloc(mm_alloc_arg_local.req_size, &resp_size, enclave_class);
-  printm("[M] paddr is 0x%p\r\n", paddr);
+  printm("[M] paddr is 0x%p", paddr);
   if (paddr == NULL) {
     printm_err("M mode: sm_alloc_enclave_mem: no enough memory\r\n");
     return ENCLAVE_NO_MEMORY;
@@ -132,7 +132,7 @@ uintptr_t sm_create_enclave(uintptr_t enclave_sbi_param)
   }
 
   void* paddr = (void*)enclave_sbi_param_local.paddr;
-  printm_err("[M]after copy from host: paddr: %p.", paddr);
+  printm("[M]after copy from host: paddr: %p.", paddr);
   unsigned long size = (unsigned long)enclave_sbi_param_local.size;
   if(retrieve_kernel_access(paddr, size) != 0)
   {

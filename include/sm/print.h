@@ -4,15 +4,15 @@
 #include <sbi/sbi_console.h>
 #include <sbi/sbi_string.h>
 
-// #define PENGLAI_DEBUG
+#define PENGLAI_DEBUG
 
-#define debug(M, ...) sbi_printf("[DEBUG] (%s:%d,%s) " M "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+#define debug(M, ...) sbi_printf("[DEBUG] (%s:%d,%s) \n " M "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
-#define log_err(M, ...) sbi_printf("[ERROR] (%s:%d,%s) " M "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+#define log_err(M, ...) sbi_printf("[ERROR] (%s:%d,%s) \n " M "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
-#define log_info(M, ...) sbi_printf("[INFO] (%s:%d,%s) " M "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+#define log_info(M, ...) sbi_printf("[INFO] (%s:%d,%s) \n " M "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
-#define log_warn(M, ...) sbi_printf("[WARN] (%s:%d,%s) " M "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+#define log_warn(M, ...) sbi_printf("[WARN] (%s:%d,%s) \n " M "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
 #ifdef PENGLAI_DEBUG
 #define printm(...) debug(__VA_ARGS__)

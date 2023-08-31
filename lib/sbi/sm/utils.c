@@ -25,7 +25,7 @@ void dump_pt(unsigned long *page_table, int level)
 			continue;
 
 		for (i=0; i<level; i++) printm("\t"); //space before entries
-		printm("%d: 0x%lx, perm: 0x%lx\n",l1, l1_pt[l1], l1_pt[l1] & (PTE_R | PTE_W | PTE_X));
+		printm("%d: 0x%lx, perm: 0x%lx",l1, l1_pt[l1], l1_pt[l1] & (PTE_R | PTE_W | PTE_X));
 		if (!PTE_TABLE(l1_pt[l1])) // not page table page
 			continue;
 
