@@ -154,7 +154,8 @@ uintptr_t sm_create_enclave(uintptr_t enclave_sbi_param)
   enclave->thread_context.host_spmp_context[NSPMP-1].paddr = 0;
   enclave->thread_context.host_spmp_context[NSPMP-1].size = -1UL;
   enclave->thread_context.host_spmp_context[NSPMP-1].mode = SPMP_NAPOT;
-  enclave->thread_context.host_spmp_context[NSPMP-1].perm = SPMP_R | SPMP_W | SPMP_X;
+  enclave->thread_context.host_spmp_context[NSPMP-1].perm = SPMP_NO_PERM;
+  enclave->thread_context.host_spmp_context[NSPMP-1].sbit = SPMP_S;
   set_spmp(NSPMP-1, enclave->thread_context.host_spmp_context[NSPMP-1]); 
   
   printm("[Penglai Monitor] %s created return value:%ld \r\n",__func__, retval);
