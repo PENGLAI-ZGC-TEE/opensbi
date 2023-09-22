@@ -1,4 +1,4 @@
-#include <sm/platform/spmp_xs/spmp.h>
+#include <sm/platform/spmp/spmp.h>
 #include <stddef.h>
 
 void set_spmp(int spmp_idx, struct spmp_config_t spmp_cfg_t)
