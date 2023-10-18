@@ -212,7 +212,7 @@ int sbi_trap_redirect(struct sbi_trap_regs *regs,
  *
  * @param regs pointer to register state
  */
-struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
+void sbi_trap_handler(struct sbi_trap_regs *regs)
 {
 	int rc = SBI_ENOTSUPP;
 	const char *msg = "trap handler failed";
@@ -242,7 +242,7 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 			msg = "unhandled external interrupt";
 			goto trap_error;
 		};
-		return regs;
+		return;
 	}
 
 	switch (mcause) {
@@ -286,7 +286,6 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 trap_error:
 	if (rc)
 		sbi_trap_error(msg, rc, mcause, mtval, mtval2, mtinst, regs);
-	return regs;
 }
 
 typedef void (*trap_exit_t)(const struct sbi_trap_regs *regs);

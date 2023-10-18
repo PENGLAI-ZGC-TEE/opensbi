@@ -25,8 +25,6 @@
 #include <sbi/sbi_tlb.h>
 #include <sbi/sbi_pmp.h>
 #include <sbi/sbi_version.h>
-#include <sbi/sbi_spmp.h>
-
 
 #define BANNER                                              \
 	"   ____                    _____ ____ _____\n"     \
@@ -262,13 +260,6 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 		sbi_hart_hang();
 	}
 
-	/* Penglai sPMP init for synchronize sPMP settings among Harts */
-	rc = sbi_spmp_init(scratch, TRUE);
-	if (rc) {
-		sbi_printf("%s: (penglai) spmp init failed (error %d)\n", __func__, rc);
-		sbi_hart_hang();
-	}
-
 	rc = sbi_timer_init(scratch, TRUE);
 	if (rc) {
 		sbi_printf("%s: timer init failed (error %d)\n", __func__, rc);
@@ -373,13 +364,6 @@ static void __noreturn init_warmboot(struct sbi_scratch *scratch, u32 hartid)
 	rc = sbi_pmp_init(scratch, FALSE);
 	if (rc) {
 		sbi_printf("%s: (penglai) pmp init failed (error %d)\n", __func__, rc);
-		sbi_hart_hang();
-	}
-
-	/* Penglai sPMP init for synchronize sPMP settings among Harts */
-	rc = sbi_spmp_init(scratch, FALSE);
-	if (rc) {
-		sbi_printf("%s: (penglai) spmp init failed (error %d)\n", __func__, rc);
 		sbi_hart_hang();
 	}
 

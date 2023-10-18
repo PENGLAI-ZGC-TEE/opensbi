@@ -31,10 +31,31 @@ static unsigned long hart_data_offset;
 /** Per hart specific data to manage state transition **/
 struct sbi_hsm_data {
 	atomic_t state;
-	unsigned long suspend_type;
-	unsigned long saved_mie;
-	unsigned long saved_mip;
 };
+
+int sbi_hsm_hart_state_to_status(int state)
+{
+	int ret;
+
+	switch (state) {
+	case SBI_HART_STOPPED:
+		ret = SBI_HSM_HART_STATUS_STOPPED;
+		break;
+	case SBI_HART_STOPPING:
+		ret = SBI_HSM_HART_STATUS_STOP_PENDING;
+		break;
+	case SBI_HART_STARTING:
+		ret = SBI_HSM_HART_STATUS_START_PENDING;
+		break;
+	case SBI_HART_STARTED:
+		ret = SBI_HSM_HART_STATUS_STARTED;
+		break;
+	default:
+		ret = SBI_EINVAL;
+	}
+
+	return ret;
+}
 
 static inline int __sbi_hsm_hart_get_state(u32 hartid)
 {
@@ -43,7 +64,7 @@ static inline int __sbi_hsm_hart_get_state(u32 hartid)
 
 	scratch = sbi_hartid_to_scratch(hartid);
 	if (!scratch)
-		return SBI_EINVAL;
+		return SBI_HART_UNKNOWN;
 
 	hdata = sbi_scratch_offset_ptr(scratch, hart_data_offset);
 	return atomic_read(&hdata->state);
@@ -52,9 +73,17 @@ static inline int __sbi_hsm_hart_get_state(u32 hartid)
 int sbi_hsm_hart_get_state(const struct sbi_domain *dom, u32 hartid)
 {
 	if (!sbi_domain_is_assigned_hart(dom, hartid))
-		return SBI_EINVAL;
+		return SBI_HART_UNKNOWN;
 
 	return __sbi_hsm_hart_get_state(hartid);
+}
+
+static bool sbi_hsm_hart_started(const struct sbi_domain *dom, u32 hartid)
+{
+	if (sbi_hsm_hart_get_state(dom, hartid) == SBI_HART_STARTED)
+		return TRUE;
+	else
+		return FALSE;
 }
 
 /**
@@ -65,10 +94,9 @@ int sbi_hsm_hart_get_state(const struct sbi_domain *dom, u32 hartid)
  * @return 0 on success and SBI_Exxx (< 0) on failure
  * Note: the output HART mask will be set to zero on failure as well.
  */
-int sbi_hsm_hart_interruptible_mask(const struct sbi_domain *dom,
-				    ulong hbase, ulong *out_hmask)
+int sbi_hsm_hart_started_mask(const struct sbi_domain *dom,
+			      ulong hbase, ulong *out_hmask)
 {
-	int hstate;
 	ulong i, hmask, dmask;
 	ulong hend = sbi_scratch_last_hartid() + 1;
 
@@ -81,12 +109,9 @@ int sbi_hsm_hart_interruptible_mask(const struct sbi_domain *dom,
 	dmask = sbi_domain_get_assigned_hartmask(dom, hbase);
 	for (i = hbase; i < hend; i++) {
 		hmask = 1UL << (i - hbase);
-		if (dmask & hmask) {
-			hstate = __sbi_hsm_hart_get_state(i);
-			if (hstate == SBI_HSM_STATE_STARTED ||
-			    hstate == SBI_HSM_STATE_SUSPENDED)
-				*out_hmask |= hmask;
-		}
+		if ((dmask & hmask) &&
+		    (__sbi_hsm_hart_get_state(i) == SBI_HART_STARTED))
+			*out_hmask |= hmask;
 	}
 
 	return 0;
@@ -98,15 +123,16 @@ void sbi_hsm_prepare_next_jump(struct sbi_scratch *scratch, u32 hartid)
 	struct sbi_hsm_data *hdata = sbi_scratch_offset_ptr(scratch,
 							    hart_data_offset);
 
-	oldstate = atomic_cmpxchg(&hdata->state, SBI_HSM_STATE_START_PENDING,
-				  SBI_HSM_STATE_STARTED);
-	if (oldstate != SBI_HSM_STATE_START_PENDING)
+	oldstate = atomic_cmpxchg(&hdata->state, SBI_HART_STARTING,
+				  SBI_HART_STARTED);
+	if (oldstate != SBI_HART_STARTING)
 		sbi_hart_hang();
 }
 
 static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 {
 	unsigned long saved_mie;
+	const struct sbi_platform *plat = sbi_platform_ptr(scratch);
 	struct sbi_hsm_data *hdata = sbi_scratch_offset_ptr(scratch,
 							    hart_data_offset);
 	/* Save MIE CSR */
@@ -116,17 +142,15 @@ static void sbi_hsm_hart_wait(struct sbi_scratch *scratch, u32 hartid)
 	csr_set(CSR_MIE, MIP_MSIP);
 
 	/* Wait for hart_add call*/
-	while (atomic_read(&hdata->state) != SBI_HSM_STATE_START_PENDING) {
+	while (atomic_read(&hdata->state) != SBI_HART_STARTING) {
 		wfi();
 	};
 
 	/* Restore MIE CSR */
 	csr_write(CSR_MIE, saved_mie);
 
-	/*
-	 * No need to clear IPI here because the sbi_ipi_init() will
-	 * clear it for current HART via sbi_platform_ipi_init().
-	 */
+	/* Clear current HART IPI */
+	sbi_platform_ipi_clear(plat, hartid);
 }
 
 int sbi_hsm_init(struct sbi_scratch *scratch, u32 hartid, bool cold_boot)
@@ -150,9 +174,7 @@ int sbi_hsm_init(struct sbi_scratch *scratch, u32 hartid, bool cold_boot)
 			hdata = sbi_scratch_offset_ptr(rscratch,
 						       hart_data_offset);
 			ATOMIC_INIT(&hdata->state,
-				    (i == hartid) ?
-				    SBI_HSM_STATE_START_PENDING :
-				    SBI_HSM_STATE_STOPPED);
+			(i == hartid) ? SBI_HART_STARTING : SBI_HART_STOPPED);
 		}
 	} else {
 		sbi_hsm_hart_wait(scratch, hartid);
@@ -169,9 +191,9 @@ void __noreturn sbi_hsm_exit(struct sbi_scratch *scratch)
 							    hart_data_offset);
 	void (*jump_warmboot)(void) = (void (*)(void))scratch->warmboot_addr;
 
-	hstate = atomic_cmpxchg(&hdata->state, SBI_HSM_STATE_STOP_PENDING,
-				SBI_HSM_STATE_STOPPED);
-	if (hstate != SBI_HSM_STATE_STOP_PENDING)
+	hstate = atomic_cmpxchg(&hdata->state, SBI_HART_STOPPING,
+				SBI_HART_STOPPED);
+	if (hstate != SBI_HART_STOPPING)
 		goto fail_exit;
 
 	if (sbi_platform_has_hart_hotplug(plat)) {
@@ -210,22 +232,22 @@ int sbi_hsm_hart_start(struct sbi_scratch *scratch,
 		return SBI_EINVAL;
 	if (dom && !sbi_domain_check_addr(dom, saddr, smode,
 					  SBI_DOMAIN_EXECUTE))
-		return SBI_EINVALID_ADDR;
+		return SBI_EINVAL;
 
 	rscratch = sbi_hartid_to_scratch(hartid);
 	if (!rscratch)
 		return SBI_EINVAL;
 	hdata = sbi_scratch_offset_ptr(rscratch, hart_data_offset);
-	hstate = atomic_cmpxchg(&hdata->state, SBI_HSM_STATE_STOPPED,
-				SBI_HSM_STATE_START_PENDING);
-	if (hstate == SBI_HSM_STATE_STARTED)
+	hstate = atomic_cmpxchg(&hdata->state, SBI_HART_STOPPED,
+				SBI_HART_STARTING);
+	if (hstate == SBI_HART_STARTED)
 		return SBI_EALREADY;
 
 	/**
 	 * if a hart is already transition to start or stop, another start call
 	 * is considered as invalid request.
 	 */
-	if (hstate != SBI_HSM_STATE_STOPPED)
+	if (hstate != SBI_HART_STOPPED)
 		return SBI_EINVAL;
 
 	init_count = sbi_init_count(hartid);
@@ -247,203 +269,23 @@ int sbi_hsm_hart_start(struct sbi_scratch *scratch,
 int sbi_hsm_hart_stop(struct sbi_scratch *scratch, bool exitnow)
 {
 	int oldstate;
-	const struct sbi_domain *dom = sbi_domain_thishart_ptr();
+	u32 hartid = current_hartid();
 	struct sbi_hsm_data *hdata = sbi_scratch_offset_ptr(scratch,
 							    hart_data_offset);
 
-	if (!dom)
-		return SBI_EFAIL;
+	if (!sbi_hsm_hart_started(sbi_domain_thishart_ptr(), hartid))
+		return SBI_EINVAL;
 
-	oldstate = atomic_cmpxchg(&hdata->state, SBI_HSM_STATE_STARTED,
-				  SBI_HSM_STATE_STOP_PENDING);
-	if (oldstate != SBI_HSM_STATE_STARTED) {
+	oldstate = atomic_cmpxchg(&hdata->state, SBI_HART_STARTED,
+				  SBI_HART_STOPPING);
+	if (oldstate != SBI_HART_STARTED) {
 		sbi_printf("%s: ERR: The hart is in invalid state [%u]\n",
 			   __func__, oldstate);
-		return SBI_EFAIL;
+		return SBI_EDENIED;
 	}
 
 	if (exitnow)
 		sbi_exit(scratch);
 
 	return 0;
-}
-
-static int __sbi_hsm_suspend_ret_default(struct sbi_scratch *scratch)
-{
-	/* Wait for interrupt */
-	wfi();
-
-	return 0;
-}
-
-static void __sbi_hsm_suspend_non_ret_save(struct sbi_scratch *scratch)
-{
-	struct sbi_hsm_data *hdata = sbi_scratch_offset_ptr(scratch,
-							    hart_data_offset);
-
-	/*
-	 * We will be resuming in warm-boot path so the MIE and MIP CSRs
-	 * will be back to initial state. It is possible that HART has
-	 * configured timer event before going to suspend state so we
-	 * should save MIE and MIP CSRs and restore it after resuming.
-	 *
-	 * Further, the M-mode bits in MIP CSR are read-only and set by
-	 * external devices (such as interrupt controller) whereas all
-	 * VS-mode bits in MIP are read-only alias of bits in HVIP CSR.
-	 *
-	 * This means we should only save/restore S-mode bits of MIP CSR
-	 * such as MIP.SSIP and MIP.STIP.
-	 */
-
-	hdata->saved_mie = csr_read(CSR_MIE);
-	hdata->saved_mip = csr_read(CSR_MIP) & (MIP_SSIP | MIP_STIP);
-}
-
-static void __sbi_hsm_suspend_non_ret_restore(struct sbi_scratch *scratch)
-{
-	struct sbi_hsm_data *hdata = sbi_scratch_offset_ptr(scratch,
-							    hart_data_offset);
-
-	csr_write(CSR_MIE, hdata->saved_mie);
-	csr_write(CSR_MIP, (hdata->saved_mip & (MIP_SSIP | MIP_STIP)));
-}
-
-static int __sbi_hsm_suspend_non_ret_default(struct sbi_scratch *scratch,
-					     ulong raddr)
-{
-	void (*jump_warmboot)(void) = (void (*)(void))scratch->warmboot_addr;
-
-	/*
-	 * Save some of the M-mode CSRs which should be restored after
-	 * resuming from suspend state
-	 */
-	__sbi_hsm_suspend_non_ret_save(scratch);
-
-	/* Wait for interrupt */
-	wfi();
-
-	/*
-	 * Directly jump to warm reboot to simulate resume from a
-	 * non-retentive suspend.
-	 */
-	jump_warmboot();
-
-	return 0;
-}
-
-void sbi_hsm_hart_resume_start(struct sbi_scratch *scratch)
-{
-	int oldstate;
-	struct sbi_hsm_data *hdata = sbi_scratch_offset_ptr(scratch,
-							    hart_data_offset);
-
-	/* If current HART was SUSPENDED then set RESUME_PENDING state */
-	oldstate = atomic_cmpxchg(&hdata->state, SBI_HSM_STATE_SUSPENDED,
-			SBI_HSM_STATE_RESUME_PENDING);
-	if (oldstate != SBI_HSM_STATE_SUSPENDED) {
-		sbi_printf("%s: ERR: The hart is in invalid state [%u]\n",
-			   __func__, oldstate);
-		sbi_hart_hang();
-	}
-}
-
-void sbi_hsm_hart_resume_finish(struct sbi_scratch *scratch)
-{
-	u32 oldstate;
-	struct sbi_hsm_data *hdata = sbi_scratch_offset_ptr(scratch,
-							    hart_data_offset);
-
-	/* If current HART was RESUME_PENDING then set STARTED state */
-	oldstate = atomic_cmpxchg(&hdata->state, SBI_HSM_STATE_RESUME_PENDING,
-				  SBI_HSM_STATE_STARTED);
-	if (oldstate != SBI_HSM_STATE_RESUME_PENDING) {
-		sbi_printf("%s: ERR: The hart is in invalid state [%u]\n",
-			   __func__, oldstate);
-		sbi_hart_hang();
-	}
-
-	/*
-	 * Restore some of the M-mode CSRs which we are re-configured by
-	 * the warm-boot sequence.
-	 */
-	__sbi_hsm_suspend_non_ret_restore(scratch);
-}
-
-int sbi_hsm_hart_suspend(struct sbi_scratch *scratch, u32 suspend_type,
-			 ulong raddr, ulong rmode, ulong priv)
-{
-	int oldstate, ret;
-	const struct sbi_domain *dom = sbi_domain_thishart_ptr();
-	const struct sbi_platform *plat = sbi_platform_ptr(scratch);
-	struct sbi_hsm_data *hdata = sbi_scratch_offset_ptr(scratch,
-							    hart_data_offset);
-
-	/* For now, we only allow suspend from S-mode or U-mode. */
-
-	/* Sanity check on domain assigned to current HART */
-	if (!dom)
-		return SBI_EINVAL;
-
-	/* Sanity check on suspend type */
-	if (SBI_HSM_SUSPEND_RET_DEFAULT < suspend_type &&
-	    suspend_type < SBI_HSM_SUSPEND_RET_PLATFORM)
-		return SBI_EINVAL;
-	if (SBI_HSM_SUSPEND_NON_RET_DEFAULT < suspend_type &&
-	    suspend_type < SBI_HSM_SUSPEND_NON_RET_PLATFORM)
-		return SBI_EINVAL;
-
-	/* Additional sanity check for non-retentive suspend */
-	if (suspend_type & SBI_HSM_SUSP_NON_RET_BIT) {
-		if (rmode != PRV_S && rmode != PRV_U)
-			return SBI_EINVAL;
-		if (dom && !sbi_domain_check_addr(dom, raddr, rmode,
-						  SBI_DOMAIN_EXECUTE))
-			return SBI_EINVALID_ADDR;
-	}
-
-	/* Save the resume address and resume mode */
-	scratch->next_arg1 = priv;
-	scratch->next_addr = raddr;
-	scratch->next_mode = rmode;
-
-	/* Directly move from STARTED to SUSPENDED state */
-	oldstate = atomic_cmpxchg(&hdata->state, SBI_HSM_STATE_STARTED,
-				  SBI_HSM_STATE_SUSPENDED);
-	if (oldstate != SBI_HSM_STATE_STARTED) {
-		sbi_printf("%s: ERR: The hart is in invalid state [%u]\n",
-			   __func__, oldstate);
-		ret = SBI_EDENIED;
-		goto fail_restore_state;
-	}
-
-	/* Save the suspend type */
-	hdata->suspend_type = suspend_type;
-
-	/* Try platform specific suspend */
-	ret = sbi_platform_hart_suspend(plat, suspend_type,
-					scratch->warmboot_addr);
-	if (ret == SBI_ENOTSUPP) {
-		/* Try generic implementation of default suspend types */
-		if (suspend_type == SBI_HSM_SUSPEND_RET_DEFAULT) {
-			ret = __sbi_hsm_suspend_ret_default(scratch);
-		} else if (suspend_type == SBI_HSM_SUSPEND_NON_RET_DEFAULT) {
-			ret = __sbi_hsm_suspend_non_ret_default(scratch,
-						scratch->warmboot_addr);
-		}
-	}
-
-fail_restore_state:
-	/*
-	 * We might have successfully resumed from retentive suspend
-	 * or suspend failed. In both cases, we restore state of hart.
-	 */
-	oldstate = atomic_cmpxchg(&hdata->state, SBI_HSM_STATE_SUSPENDED,
-				  SBI_HSM_STATE_STARTED);
-	if (oldstate != SBI_HSM_STATE_SUSPENDED) {
-		sbi_printf("%s: ERR: The hart is in invalid state [%u]\n",
-			   __func__, oldstate);
-		sbi_hart_hang();
-	}
-
-	return ret;
 }

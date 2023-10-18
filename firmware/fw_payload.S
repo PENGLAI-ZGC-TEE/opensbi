@@ -59,7 +59,7 @@ fw_next_arg1:
 	 * The next address should be returned in 'a0'.
 	 */
 fw_next_addr:
-	lla	a0, payload_bin
+	la	a0, payload_bin
 	ret
 
 	.section .entry, "ax", %progbits

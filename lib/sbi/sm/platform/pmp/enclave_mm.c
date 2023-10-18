@@ -189,6 +189,10 @@ static int iterate_over_enclave_pages(pte_t* ptes, int level, uintptr_t va,
 	return 0;
 }
 
+void __riscv_flush_icache(void) {
+	__asm__ volatile ("fence.i");
+}
+
 /**
  * \brief This function check the enclave page table set up by
  * kernel driver. Check two things:
@@ -207,11 +211,6 @@ static int iterate_over_enclave_pages(pte_t* ptes, int level, uintptr_t va,
  * parameters such as untrusted memory and kbuffer (each has two
  * part: a start vaddr in enclave address space and a size).
  */
-
-void __riscv_flush_icache(void) {
-  __asm__ volatile ("fence.i");
-}
-
 int check_enclave_pt(struct enclave_t *enclave)
 {
 	uintptr_t retval = 0;

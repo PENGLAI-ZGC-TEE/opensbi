@@ -51,18 +51,15 @@ void fdt_cpu_fixup(void *fdt)
 	}
 }
 
-void fdt_plic_fixup(void *fdt)
+void fdt_plic_fixup(void *fdt, const char *compat)
 {
 	u32 *cells;
 	int i, cells_count;
 	int plic_off;
 
-	plic_off = fdt_node_offset_by_compatible(fdt, 0, "sifive,plic-1.0.0");
-	if (plic_off < 0) {
-		plic_off = fdt_node_offset_by_compatible(fdt, 0, "riscv,plic0");
-		if (plic_off < 0)
-			return;
-	}
+	plic_off = fdt_node_offset_by_compatible(fdt, 0, compat);
+	if (plic_off < 0)
+		return;
 
 	cells = (u32 *)fdt_getprop(fdt, plic_off,
 				   "interrupts-extended", &cells_count);
@@ -260,7 +257,7 @@ int fdt_reserved_memory_nomap_fixup(void *fdt)
 
 void fdt_fixups(void *fdt)
 {
-	fdt_plic_fixup(fdt);
+	fdt_plic_fixup(fdt, "riscv,plic0");
 
 	fdt_reserved_memory_fixup(fdt);
 }
