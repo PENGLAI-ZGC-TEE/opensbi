@@ -21,6 +21,7 @@
 #include <sbi/sbi_trap.h>
 
 #include <sm/sm.h>
+#include <sm/platform/spmp/spmp.h>
 
 static void __noreturn sbi_trap_error(const char *msg, int rc,
 				      ulong mcause, ulong mtval, ulong mtval2,
