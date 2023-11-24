@@ -85,4 +85,6 @@ uintptr_t sm_do_timer_irq(uintptr_t *regs, uintptr_t mcause, uintptr_t mepc);
 
 int check_in_enclave_world();
 
+uintptr_t get_enclave_paddr_from_va(pte_t *enclave_root_pt, uintptr_t vaddr);
+
 #endif /* _SM_H */

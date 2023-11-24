@@ -203,7 +203,12 @@ void set_pmp(int pmp_idx, struct pmp_config_t pmp_cfg_t)
 #define PMP_CONFIG_OFFSET(pmp_idx) ((uintptr_t)PMPCFG_BIT_NUM * (pmp_idx % PMP_PER_CFG_REG))
 	uintptr_t pmp_config = ((pmp_cfg_t.mode & PMP_A) | (pmp_cfg_t.perm & (PMP_R|PMP_W|PMP_X)))
 		<< PMP_CONFIG_OFFSET(pmp_idx);
+#if 0
+	u32 hartid = current_hartid();
+    printm_err("### set_pmp hart id = %u ###\n", hartid);
 
+	printm_err("##### set_pmp pmp_idx: %d, pmp_address: 0x%lx, pmp_config: 0x%lx, size: 0x%lx mode: 0x%lx perm: 0x%lx #####\n", pmp_idx, pmp_cfg_t.paddr, pmp_config, pmp_cfg_t.size, pmp_cfg_t.mode, pmp_cfg_t.perm);
+#endif
 	switch(pmp_cfg_t.mode)
 	{
 		case PMP_A_NAPOT:
@@ -281,7 +286,7 @@ struct pmp_config_t get_pmp(int pmp_idx)
 				pmp_address >>= 1;
 			}
 			order += 3;
-			size = 1 << order;
+			size = 1UL << order;
 			pmp_address <<= (order-1);
 			break;
 		case PMP_A_NA4:

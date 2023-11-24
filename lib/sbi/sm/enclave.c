@@ -11,6 +11,10 @@
 #include <sm/attest.h>
 #include <sm/gm/SM3.h>
 
+#include <sbi/sbi_string.h>
+#include <sm/platform/spmp/spmp.h>
+
+
 static struct cpu_state_t cpus[MAX_HARTS] = {{0,}, };
 
 //spinlock
@@ -52,7 +56,7 @@ int check_in_enclave_world()
 	return 0;
 }
 
-int check_enclave_authentication(struct enclave_t* enclave)
+static int check_enclave_authentication(struct enclave_t* enclave)
 {
 	if(platform_check_enclave_authentication(enclave) < 0)
 		return -1;
@@ -276,11 +280,40 @@ struct enclave_t* get_enclave(int eid)
 	return enclave;
 }
 
+//switch the spmp context from host to enclave befire entering enclave world
+void switch_spmp_context_h2e(struct enclave_t* enclave)
+{
+	int i;
+
+#if 0
+	struct spmp_config_t tmp;
+
+	//save the host spmp register values to enclave->thread_context, not necessary
+	for(i = 0; i < NSPMP; i++)
+	{
+		tmp = get_spmp(i);
+		sbi_memcpy(&(enclave->thread_context.host_spmp_context[i]), &tmp, sizeof(struct spmp_config_t));
+	}
+#endif
+
+	//load enclave spmp configuration parameters from enclave structure
+	for(i = 0; i < NSPMP; i++)
+	{
+		set_spmp(i, enclave->enclave_spmp_context[i]);
+	}
+
+	return;
+}
+
+
 int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 {
 	//grant encalve access to memory
 	if(grant_enclave_access(enclave) < 0)
 		return -1;
+
+	//load enclave spmp context
+	switch_spmp_context_h2e(enclave);
 
 	//save host context
 	swap_prev_state(&(enclave->thread_context), host_regs);
@@ -321,6 +354,8 @@ int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 	uintptr_t mstatus = host_regs[33]; //In OpenSBI, we use regs to change mstatus
 	mstatus = INSERT_FIELD(mstatus, MSTATUS_MPP, PRV_U);
 	mstatus = INSERT_FIELD(mstatus, MSTATUS_FS, 0x3); // enable float
+	mstatus = INSERT_FIELD(mstatus, MSTATUS_SUM, 0x1); // enable SUM
+
 	host_regs[33] = mstatus;
 
 	//mark that cpu is in enclave world now
@@ -331,14 +366,41 @@ int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 	return 0;
 }
 
+
+//switch the spmp context from enclave to host before exiting enclave world
+void switch_spmp_context_e2h(struct enclave_t* enclave)
+{
+	int i;
+	struct spmp_config_t tmp;
+
+	// save CPU spmp register values to enclave structure
+	for(i = 0; i < NSPMP; i++)
+	{
+		tmp = get_spmp(i);
+		sbi_memcpy(&(enclave->enclave_spmp_context[i]), &tmp, sizeof(struct spmp_config_t));
+	}
+
+	//load host spmp configuration parameters from enclave structure to cpu
+	for(i = 0; i < NSPMP; i++)
+	{
+		set_spmp(i, enclave->thread_context.host_spmp_context[i]);
+	}
+
+	return;
+}
+
+
 int swap_from_enclave_to_host(uintptr_t* regs, struct enclave_t* enclave)
 {
 	//retrieve enclave access to memory
 	retrieve_enclave_access(enclave);
 
+	//restore host spmp context
+	switch_spmp_context_e2h(enclave);
+
 	//restore host context
 	swap_prev_state(&(enclave->thread_context), regs);
-
+	
 	//restore host's ptbr
 	switch_to_host_ptbr(&(enclave->thread_context), enclave->host_ptbr);
 
@@ -434,14 +496,14 @@ uintptr_t create_enclave_m(struct enclave_sbi_param_t create_args)
 	retval = check_enclave_pt(enclave);
 	if(retval != 0)
 	{
-		printm_err("M mode: create_enclave: check enclave page table failed, create failed\r\n");
+		printm_err("M mode: create_enclave_m: check enclave page table failed, create failed\r\n");
 		goto error_out;
 	}
 
 	retval = copy_word_to_host((unsigned int*)create_args.eid_ptr, enclave->eid);
 	if(retval != 0)
 	{
-		printm_err("M mode: create_enclave: unknown error happended when copy word to host\r\n");
+		printm_err("M mode: create_enclave_m: unknown error happended when copy word to host\r\n");
 		goto error_out;
 	}
 
@@ -652,12 +714,13 @@ uintptr_t resume_enclave(uintptr_t* regs, unsigned int eid)
 {
 	uintptr_t retval = 0;
 	struct enclave_t* enclave = get_enclave(eid);
+
 	if(!enclave)
 	{
-		printm("[Penglai Monitor@%s]  wrong enclave id%d\r\n", __func__, eid);
+		printm_err("[Penglai Monitor@%s]  wrong enclave id%d\r\n", __func__, eid);
 		return -1UL;
 	}
-
+	
 	spin_lock(&enclave_metadata_lock);
 
 	if(enclave->host_ptbr != csr_read(CSR_SATP))
@@ -707,6 +770,7 @@ uintptr_t resume_enclave(uintptr_t* regs, unsigned int eid)
 
 resume_enclave_out:
 	spin_unlock(&enclave_metadata_lock);
+
 	return retval;
 }
 
