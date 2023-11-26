@@ -202,10 +202,6 @@ struct sbi_trap_info {
 	unsigned long tinst;
 };
 
-static void __noreturn sbi_trap_error(const char *msg, int rc,
-				      ulong mcause, ulong mtval, ulong mtval2,
-				      ulong mtinst, struct sbi_trap_regs *regs);
-
 int sbi_trap_redirect(struct sbi_trap_regs *regs,
 		      struct sbi_trap_info *trap);
 
