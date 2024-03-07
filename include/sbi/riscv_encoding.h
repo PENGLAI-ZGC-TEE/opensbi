@@ -547,6 +547,8 @@
 #define CSR_DSCRATCH0			0x7b2
 #define CSR_DSCRATCH1			0x7b3
 
+#define CSR_SPMP_ENABLE    0x19f // 1: open spmp 0: close spmp, the default value
+
 /* ===== Trap/Exception Causes ===== */
 
 #define CAUSE_MISALIGNED_FETCH		0x0

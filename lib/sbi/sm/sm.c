@@ -16,6 +16,9 @@
 
 void sm_init()
 {
+#ifdefine SPMP_ENABLE
+  csr_write(CSR_SPMP_ENABLE, 0x1);
+#endif
   platform_init();
   attest_init();
 }
