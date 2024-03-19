@@ -14,6 +14,7 @@
 #include <sbi/sbi_string.h>
 #include <sm/platform/spmp/spmp.h>
 
+#include "hmac/hmac.h"
 
 static struct cpu_state_t cpus[MAX_HARTS] = {{0,}, };
 
@@ -961,6 +962,92 @@ uintptr_t enclave_user_defined_ocall(uintptr_t* regs, uintptr_t ocall_buf_size)
 	uintptr_t ocall_func_id = OCALL_USER_DEFINED;
 	copy_to_host((uintptr_t*)enclave->ocall_func_id, &ocall_func_id, sizeof(uintptr_t));
 	copy_to_host((uintptr_t*)enclave->ocall_arg0, &ocall_buf_size, sizeof(uintptr_t));
+
+	swap_from_enclave_to_host(regs, enclave);
+	enclave->state = RUNNABLE;
+	ret = ENCLAVE_OCALL;
+out:
+	spin_unlock(&enclave_metadata_lock);
+	return ret;
+}
+
+
+uintptr_t enclave_rot_hmac(uintptr_t* regs)
+{
+	uintptr_t ret = 0;
+	int eid = get_enclave_id();
+	struct enclave_t* enclave = NULL;
+
+	if(check_in_enclave_world() < 0)
+	{
+		printm_err("[Penglai Monitor@%s] check enclave world is failed\n", __func__);
+		return -1;
+	}
+
+	enclave = get_enclave(eid);
+
+	spin_lock(&enclave_metadata_lock);
+
+	if(!enclave || check_enclave_authentication(enclave)!=0 || enclave->state != RUNNING)
+	{
+		ret = -1UL;
+		printm_err("[Penglai Monitor@%s] check enclave authentication is failed\n", __func__);
+		goto out;
+	}
+
+	uintptr_t ocall_func_id = OCALL_ROT_HMAC;
+	copy_to_host((uintptr_t*)enclave->ocall_func_id, &ocall_func_id, sizeof(uintptr_t));
+
+ 	//call the ROT hmac api
+
+	swap_from_enclave_to_host(regs, enclave);
+	enclave->state = RUNNABLE;
+	ret = ENCLAVE_OCALL;
+out:
+	spin_unlock(&enclave_metadata_lock);
+	return ret;
+}
+
+uintptr_t enclave_rot_sha256(uintptr_t* regs)
+{
+	uintptr_t ret = 0;
+	int eid = get_enclave_id();
+	struct enclave_t* enclave = NULL;
+	
+	static const char kMessage[] = "test message";
+	hmac_digest_t act_digest;
+
+	if(check_in_enclave_world() < 0)
+	{
+		printm_err("[Penglai Monitor@%s] check enclave world is failed\n", __func__);
+		return -1;
+	}
+
+	enclave = get_enclave(eid);
+
+	spin_lock(&enclave_metadata_lock);
+
+	if(!enclave || check_enclave_authentication(enclave)!=0 || enclave->state != RUNNING)
+	{
+		ret = -1UL;
+		printm_err("[Penglai Monitor@%s] check enclave authentication is failed\n", __func__);
+		goto out;
+	}
+
+	uintptr_t ocall_func_id = OCALL_ROT_SHA256;
+	copy_to_host((uintptr_t*)enclave->ocall_func_id, &ocall_func_id, sizeof(uintptr_t));
+
+ 	hmac_sha256_init();
+  	hmac_sha256_update(&kMessage, sizeof(kMessage) - 1);
+  	hmac_sha256_final(&act_digest);
+
+	printm_err("#### kmessage SHA256 digest: ");
+	int i;
+	for(i = 0; i < kHmacDigestNumWords; i++)
+	{
+		printm_err("%08x ", act_digest.digest[i]);
+	}
+	printm_err(" ####\n");
 
 	swap_from_enclave_to_host(regs, enclave);
 	enclave->state = RUNNABLE;

@@ -107,6 +107,7 @@ uintptr_t enclave_sys_write(uintptr_t *regs);
 uintptr_t enclave_user_defined_ocall(uintptr_t *regs, uintptr_t ocall_buf_size);
 uintptr_t enclave_derive_seal_key(uintptr_t* regs, uintptr_t salt_va,
                         uintptr_t salt_len, uintptr_t key_buf_va, uintptr_t key_buf_len);
+uintptr_t enclave_rot_hmac(uintptr_t* regs);
 
 int check_in_enclave_world();
 struct enclave_t* get_enclave(int eid);

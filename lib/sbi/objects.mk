@@ -70,4 +70,11 @@ libsbi-objs-y += sm/gm/miracl/mrlucas.o
 libsbi-objs-y += sm/gm/SM2_sv.o
 libsbi-objs-y += sm/gm/SM3.o
 
+## Added by ZXQ
 libsbi-objs-y += sm/platform/spmp/spmp.o
+libsbi-objs-y += sm/hmac/hmac.o
+libsbi-objs-y += sm/hmac/abs_mmio.o
+libsbi-objs-y += sm/hmac/bitfield.o
+#libsbi-objs-y += sm/hmac/hardened.o
+#libsbi-objs-y += sm/hmac/memory.o
+#libsbi-objs-y += sm/hmac/top_earlgrey.o

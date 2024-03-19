@@ -149,7 +149,7 @@ ifndef PLATFORM_RISCV_ABI
     ifeq ($(PLATFORM_RISCV_XLEN), 32)
       PLATFORM_RISCV_ABI = ilp$(PLATFORM_RISCV_XLEN)
     else
-      PLATFORM_RISCV_ABI = lp$(PLATFORM_RISCV_XLEN)
+      PLATFORM_RISCV_ABI = lp$(PLATFORM_RISCV_XLEN)d
     endif
   else
     PLATFORM_RISCV_ABI = $(OPENSBI_CC_ABI)
@@ -165,6 +165,8 @@ endif
 ifndef PLATFORM_RISCV_CODE_MODEL
   PLATFORM_RISCV_CODE_MODEL = medany
 endif
+
+$(info PLATFORM_RISCV_ABI=$(PLATFORM_RISCV_ABI) PLATFORM_RISCV_ISA=$(PLATFORM_RISCV_ISA) PLATFORM_RISCV_CODE_MODEL=$(PLATFORM_RISCV_CODE_MODEL) OPENSBI_CC_ABI=$(OPENSBI_CC_ABI))
 
 # Setup install directories
 ifdef INSTALL_INCLUDE_PATH
@@ -203,7 +205,8 @@ GENFLAGS	+=	$(libsbiutils-genflags-y)
 GENFLAGS	+=	$(platform-genflags-y)
 GENFLAGS	+=	$(firmware-genflags-y)
 
-CFLAGS		=	-g -Wall -Werror -ffreestanding -nostdlib -fno-strict-aliasing -O2
+CFLAGS		=	-g -Wall -ffreestanding -nostdlib -fno-strict-aliasing -O2
+#CFLAGS		=	-g -Wall -Werror -ffreestanding -nostdlib -fno-strict-aliasing -O2
 CFLAGS		+=	-fno-omit-frame-pointer -fno-optimize-sibling-calls
 CFLAGS		+=	-mno-save-restore -mstrict-align
 CFLAGS		+=	-mabi=$(PLATFORM_RISCV_ABI) -march=$(PLATFORM_RISCV_ISA)

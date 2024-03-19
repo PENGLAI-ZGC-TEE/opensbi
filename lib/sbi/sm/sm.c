@@ -249,6 +249,12 @@ uintptr_t sm_enclave_ocall(uintptr_t* regs, uintptr_t ocall_id, uintptr_t arg0, 
     case OCALL_USER_DEFINED:
       ret = enclave_user_defined_ocall(regs, arg0);
       break;
+    case OCALL_ROT_HMAC:
+      ret = enclave_rot_hmac(regs);
+      break;
+    case OCALL_ROT_SHA256:
+      ret = enclave_rot_sha256(regs);
+      break;
     default:
       printm_err("[Penglai Monitor@%s] wrong ocall_id(%ld)\r\n", __func__, ocall_id);
       ret = -1UL;
