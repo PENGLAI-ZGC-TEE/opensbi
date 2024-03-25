@@ -10,7 +10,7 @@
 #include "hmac/error.h"
 
 #include "hmac/hmac_regs.h"  // Generated.
-//#include "hmac/top_earlgrey.h"
+#include "hmac/top_earlgrey.h"
 
 
 void hmac_sha256_init(void) {

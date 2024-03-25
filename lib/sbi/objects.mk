@@ -78,3 +78,6 @@ libsbi-objs-y += sm/hmac/bitfield.o
 #libsbi-objs-y += sm/hmac/hardened.o
 #libsbi-objs-y += sm/hmac/memory.o
 #libsbi-objs-y += sm/hmac/top_earlgrey.o
+
+libsbi-objs-y += sm/rot/sm3.o
+libsbi-objs-y += sm/rot/sm4.o

@@ -1057,6 +1057,84 @@ out:
 	return ret;
 }
 
+uintptr_t enclave_rot_sm3(uintptr_t* regs)
+{
+	uintptr_t ret = 0;
+	int eid = get_enclave_id();
+	struct enclave_t* enclave = NULL;
+	
+	static const char kMessage[] = "test message";
+	hmac_digest_t act_digest;
+
+	if(check_in_enclave_world() < 0)
+	{
+		printm_err("[Penglai Monitor@%s] check enclave world is failed\n", __func__);
+		return -1;
+	}
+
+	enclave = get_enclave(eid);
+
+	spin_lock(&enclave_metadata_lock);
+
+	if(!enclave || check_enclave_authentication(enclave)!=0 || enclave->state != RUNNING)
+	{
+		ret = -1UL;
+		printm_err("[Penglai Monitor@%s] check enclave authentication is failed\n", __func__);
+		goto out;
+	}
+
+	uintptr_t ocall_func_id = OCALL_ROT_SHA256;
+	copy_to_host((uintptr_t*)enclave->ocall_func_id, &ocall_func_id, sizeof(uintptr_t));
+
+	run_rot_sm3();
+
+	swap_from_enclave_to_host(regs, enclave);
+	enclave->state = RUNNABLE;
+	ret = ENCLAVE_OCALL;
+out:
+	spin_unlock(&enclave_metadata_lock);
+	return ret;
+}
+
+uintptr_t enclave_rot_sm4(uintptr_t* regs)
+{
+	uintptr_t ret = 0;
+	int eid = get_enclave_id();
+	struct enclave_t* enclave = NULL;
+	
+	static const char kMessage[] = "test message";
+	hmac_digest_t act_digest;
+
+	if(check_in_enclave_world() < 0)
+	{
+		printm_err("[Penglai Monitor@%s] check enclave world is failed\n", __func__);
+		return -1;
+	}
+
+	enclave = get_enclave(eid);
+
+	spin_lock(&enclave_metadata_lock);
+
+	if(!enclave || check_enclave_authentication(enclave)!=0 || enclave->state != RUNNING)
+	{
+		ret = -1UL;
+		printm_err("[Penglai Monitor@%s] check enclave authentication is failed\n", __func__);
+		goto out;
+	}
+
+	uintptr_t ocall_func_id = OCALL_ROT_SHA256;
+	copy_to_host((uintptr_t*)enclave->ocall_func_id, &ocall_func_id, sizeof(uintptr_t));
+
+	run_rot_sm4();
+	
+	swap_from_enclave_to_host(regs, enclave);
+	enclave->state = RUNNABLE;
+	ret = ENCLAVE_OCALL;
+out:
+	spin_unlock(&enclave_metadata_lock);
+	return ret;
+}
+
 /*
  * Timer handler for penglai enclaves
  * In normal case, an enclave will pin a HART and run until it finished.

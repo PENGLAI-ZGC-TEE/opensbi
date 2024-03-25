@@ -48,6 +48,8 @@ extern uintptr_t _fw_start[], _fw_end[];
 #define OCALL_USER_DEFINED           9
 #define OCALL_ROT_HMAC               11
 #define OCALL_ROT_SHA256             12
+#define OCALL_ROT_SM3                13
+#define OCALL_ROT_SM4                14
 
 //error code of SBI_RESUME_RNCLAVE
 #define RESUME_FROM_TIMER_IRQ    2000
