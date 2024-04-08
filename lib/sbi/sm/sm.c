@@ -16,6 +16,9 @@
 
 void sm_init()
 {
+  printm("****** Initial CSR_SPMP_ENABLE value: %lx ******\n", csr_read(CSR_SPMP_ENABLE));
+  csr_write(CSR_SPMP_ENABLE, 0x1);
+  printm("****** Set CSR_SPMP_ENABLE value: %lx ******\n", csr_read(CSR_SPMP_ENABLE));
   platform_init();
   attest_init();
 }
@@ -148,8 +151,8 @@ uintptr_t sm_create_enclave(uintptr_t enclave_sbi_param)
   enclave->enclave_spmp_context[1].size = enclave_sbi_param_local.kbuffer_size;
   enclave->enclave_spmp_context[1].mode = SPMP_NAPOT;
   enclave->enclave_spmp_context[1].perm = SPMP_R | SPMP_W | SPMP_X;
-
-  sbi_memset(enclave->thread_context.host_spmp_context, 0, sizeof(struct spmp_config_t) * (NSPMP-1));
+  
+sbi_memset(enclave->thread_context.host_spmp_context, 0, sizeof(struct spmp_config_t) * (NSPMP-1));
 
   for(int i = 0; i < (NSPMP-1); i++)
   {
