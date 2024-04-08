@@ -1,6 +1,6 @@
 #ifndef _SPMP_H
 #define _SPMP_H
-#define SPMP_ENABLED
+#define SPMP_ENABLE
 
 #include <stdint.h>
 #include <sbi/riscv_encoding.h>
