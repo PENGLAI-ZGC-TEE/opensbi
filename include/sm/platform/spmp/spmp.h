@@ -13,7 +13,7 @@
 #define SPMP_W     0x02
 #define SPMP_X     0x04
 #define SPMP_A     0x18
-#define SPMP_L     0x80
+#define SPMP_S     0x80
 
 //encoding of A field in PMP configuration registers
 #define SPMP_TOR   0x08
@@ -74,6 +74,7 @@ struct spmp_config_t
   unsigned long size;
   uintptr_t perm;
   uintptr_t mode;
+  uintptr_t sbit;
 };
 
 void set_spmp(int spmp_idx, struct spmp_config_t);

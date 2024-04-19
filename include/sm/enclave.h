@@ -9,6 +9,7 @@
 #include <sm/thread.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <sbi/sbi_types.h>
 
 #define ENCLAVES_PER_METADATA_REGION 128
 #define ENCLAVE_METADATA_REGION_SIZE ((sizeof(struct enclave_t)) * ENCLAVES_PER_METADATA_REGION)
@@ -18,6 +19,8 @@
 // define the time slice for an enclave
 #define ENCLAVE_TIME_CREDITS 100000
 
+// 共享内存的默认虚拟地址
+#define DEFAULT_SHM_PTR  0x1000080000
 struct link_mem_t
 {
   unsigned long mem_size;
@@ -80,6 +83,12 @@ struct enclave_t
   // hash of enclave developer's public key
   unsigned char signer[HASH_SIZE];
 
+  unsigned long shm_ptr;
+  bool shm_ownership;
+  unsigned long key;
+  unsigned long rw_size;
+  u8 pt_perm;
+
   //enclave thread context
   //TODO: support multiple threads
   struct thread_state_t thread_context;
@@ -106,7 +115,8 @@ uintptr_t enclave_sys_write(uintptr_t *regs);
 uintptr_t enclave_user_defined_ocall(uintptr_t *regs, uintptr_t ocall_buf_size);
 uintptr_t enclave_derive_seal_key(uintptr_t* regs, uintptr_t salt_va,
                         uintptr_t salt_len, uintptr_t key_buf_va, uintptr_t key_buf_len);
-
+int get_enclave_id();
+struct enclave_t* get_enclave(int eid);
 int check_in_enclave_world();
 
 #endif /* _ENCLAVE_H */

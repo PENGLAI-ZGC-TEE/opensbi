@@ -69,6 +69,8 @@ int retrieve_kernel_access(void* paddr, unsigned long size);
 
 int retrieve_enclave_access(struct enclave_t *enclave);
 
+uintptr_t get_enclave_paddr_from_va(pte_t *enclave_root_pt, uintptr_t vaddr);
+
 uintptr_t mm_init(uintptr_t paddr, unsigned long size);
 
 void* mm_alloc(unsigned long req_size, unsigned long* resp_size);

@@ -28,7 +28,7 @@ static void enter_enclave_world(int eid)
 	platform_enter_enclave_world();
 }
 
-static int get_enclave_id()
+int get_enclave_id()
 {
 	return cpus[csr_read(CSR_MHARTID)].eid;
 }
@@ -408,6 +408,13 @@ uintptr_t create_enclave(struct enclave_sbi_param_t create_args)
 	enclave->kbuffer = create_args.kbuffer;
 	enclave->kbuffer_size = create_args.kbuffer_size;
 	enclave->host_ptbr = csr_read(CSR_SATP);
+	enclave->shm_ptr = DEFAULT_SHM_PTR;
+	enclave->shm_ownership = 0;
+	enclave->key = create_args.key;
+	enclave->rw_size = create_args.rw_size;
+	enclave->pt_perm = PTE_NO_PERM;
+
+
 	enclave->thread_context.encl_ptbr = (create_args.paddr >> (RISCV_PGSHIFT) | SATP_MODE_CHOICE);
 	enclave->root_page_table = (unsigned long*)create_args.paddr;
 	enclave->state = FRESH;

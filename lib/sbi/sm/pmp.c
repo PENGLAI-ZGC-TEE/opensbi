@@ -216,6 +216,7 @@ void set_pmp(int pmp_idx, struct pmp_config_t pmp_cfg_t)
 						pmp_cfg_t.paddr, pmp_cfg_t.size);
 				}
 				pmp_address = (pmp_cfg_t.paddr | ((pmp_cfg_t.size>>1)-1)) >> 2;
+				printm("[pmp.c@%s] pmp_address = 0x%lx.\n",__func__, pmp_address);
 			}
 			break;
 		case PMP_A_TOR:

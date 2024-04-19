@@ -36,6 +36,23 @@ extern uintptr_t _fw_start[], _fw_end[];
 #define SBI_ENCLAVE_OCALL        98
 #define SBI_GET_KEY             88
 
+
+#define SBI_CREATE_SHM          79  //创建共享内存，既要绑定sPMP并开启sPMP权限，又要attach到共享内存
+#define SBI_MAP_SHM             78  //建立共享内存的虚拟地址和物理地址映射
+#define SBI_GET_SHM             77  //
+#define SBI_GET_SHMID           76
+#define SBI_TRANSFER_SHM        75
+#define SBI_GETSHM_EID          74
+#define SBI_ATTACH_SHM          73
+
+#define SBI_GET_KEY_SIZE        71
+
+#define SBI_GET_TIME_VALUE      70
+
+#define SBI_GET_CLOCK_START     69
+#define SBI_GET_CLOCK_END       68
+
+
 //Error code of SBI_ALLOC_ENCLAVE_MEM
 #define ENCLAVE_NO_MEMORY       -2
 #define ENCLAVE_ERROR           -1
@@ -51,6 +68,51 @@ extern uintptr_t _fw_start[], _fw_end[];
 #define RESUME_FROM_TIMER_IRQ    2000
 #define RESUME_FROM_STOP         2003
 #define RESUME_FROM_OCALL        2
+
+/* page table entry (PTE) fields */
+#define PTE_NO_PERM 0x0 
+#define PTE_V     0x001 // Valid
+#define PTE_R     0x002 // Read
+#define PTE_W     0x004 // Write
+#define PTE_X     0x008 // Execute
+#define PTE_U     0x010 // User
+#define PTE_G     0x020 // Global
+#define PTE_A     0x040 // Accessed
+#define PTE_D     0x080 // Dirty
+#define PTE_SOFT  0x300 // Reserved for Software
+
+// SM需要管理所有的共享内存段，
+#define NUM_SHM 6   // 定义共享内存的数量
+#define NUM_EACH_SHM 13 //定义每个共享区可被多少的enclave共享
+// #define DEFAULT_SHM_PTR  0x1000080000
+
+// #define ENCLAVE_TYPE_SHIFT 54
+// #define SHM_KEY_MASK (~(0x3ffUL << ENCLAVE_TYPE_SHIFT))
+// #define ENCLAVE_TYPE_MASK (0x3ffUL << ENCLAVE_TYPE_SHIFT)
+#define SHM_KEY_SHIFT 10
+#define SHM_KEY_MASK (~(0x3ff))
+#define ENCLAVE_TYPE_MASK (0x3ff)
+
+typedef struct shm_enclave
+{
+  bool used;
+  unsigned int eid;
+  uint32_t enclave_type;
+}shm_enclave;
+
+struct enclave_shm_t
+{
+  bool used;
+  uint64_t key;
+
+  shm_enclave eids[NUM_EACH_SHM];
+  // unsigned int eids[NUM_EACH_SHM];
+  // bool eids_used[NUM_EACH_SHM]; 
+  unsigned long paddr;
+  unsigned long size;
+  u8 perm; // 被共享者默认具有的静态最大权限
+};
+
 
 void sm_init();
 
@@ -84,5 +146,25 @@ uintptr_t sm_exit_enclave(uintptr_t *regs, unsigned long retval);
 uintptr_t sm_do_timer_irq(uintptr_t *regs, uintptr_t mcause, uintptr_t mepc);
 
 int check_in_enclave_world();
+
+int32_t sm_create_shm(uint64_t key, uint64_t req_size);
+
+int32_t sm_map_shm(virtual_addr_t vaddr, uint32_t shmid);
+
+int32_t sm_get_shmid(uint64_t key);
+
+int32_t sm_attach_shm(uint32_t shmid, uint32_t enclave_type);
+
+uint32_t sm_get_shm(uint32_t shmid);
+
+int32_t sm_getshm_eid(uint32_t shmid, uint32_t enclave_type);
+
+int32_t sm_transfer_shm(uint32_t shmid, uint32_t eid_next, u8 perm);
+
+int32_t sm_get_key_size(virtual_addr_t key, virtual_addr_t size);
+
+uint64_t sm_clock_start();
+uint64_t sm_clock_end();
+
 
 #endif /* _SM_H */

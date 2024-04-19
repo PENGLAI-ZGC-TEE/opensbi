@@ -947,7 +947,7 @@ void* mm_alloc(unsigned long req_size, unsigned long *resp_size)
 	//print_buddy_system();
 
 	unsigned long order = ilog2(req_size-1) + 1;
-	for(int region_idx=0; region_idx < N_PMP_REGIONS; ++region_idx)
+	for(int region_idx = 1; region_idx < N_PMP_REGIONS; ++region_idx)
 	{
 		struct mm_list_t* mm_region = alloc_one_region(region_idx, order);
 
