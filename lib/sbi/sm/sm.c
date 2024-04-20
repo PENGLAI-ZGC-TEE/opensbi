@@ -16,7 +16,7 @@
 static spinlock_t shm_idx_lock = SPIN_LOCK_INITIALIZER;
 static spinlock_t shm_eid_idx_lock = SPIN_LOCK_INITIALIZER;
 static spinlock_t shm_ownership_lock = SPIN_LOCK_INITIALIZER;
-// static spinlock_t clock_lock = SPIN_LOCK_INITIALIZER;
+static spinlock_t clock_lock = SPIN_LOCK_INITIALIZER;
 
 static unsigned long shm_idx = 0;
 static unsigned long shm_eid_idx = 0;
@@ -37,10 +37,10 @@ uintptr_t sm_mm_init(uintptr_t paddr, unsigned long size)
 
   printm("[Penglai Monitor] %s paddr:0x%lx, size:0x%lx\r\n",__func__, paddr, size);
   /*DEBUG: Dump PMP registers here */
-  dump_pmps();
+  // dump_pmps();
   retval = mm_init(paddr, size);
   /*DEBUG: Dump PMP registers here */
-  dump_pmps();
+  // dump_pmps();
 
   printm("[Penglai Monitor] %s ret:%ld \r\n",__func__, retval);
   return retval;
@@ -87,7 +87,7 @@ uintptr_t sm_alloc_enclave_mem(uintptr_t mm_alloc_arg)
     printm("M mode: sm_alloc_enclave_mem: no enough memory\r\n");
     return ENCLAVE_NO_MEMORY;
   }
-  dump_pmps();
+  // dump_pmps();
 
   //grant kernel access to this memory
   if(grant_kernel_access(paddr, resp_size) != 0)
@@ -285,7 +285,7 @@ uintptr_t sm_do_timer_irq(uintptr_t *regs, uintptr_t mcause, uintptr_t mepc)
 int32_t sm_create_shm(uint64_t key, uint64_t req_size){
   printm("[sm.c@%s] ----------sm create shm start---------\n", __func__);
   unsigned long resp_size = 0;
-  printm("[sm.c@%s] req mem size is %ld.\n", __func__, (long int)req_size);
+  printm("[sm.c@%s] req mem size is 0x%lx.\n", __func__, (unsigned long)req_size);
   // void* paddr = mm_alloc(req_size, &resp_size);
   void* paddr = NULL;
 	struct pmp_config_t pmp_config = get_pmp(2);
@@ -293,13 +293,14 @@ int32_t sm_create_shm(uint64_t key, uint64_t req_size){
 	resp_size = pmp_config.size;
 	pmp_config.perm = PMP_W | PMP_R;
 	// pmp_config.mode = PMP_A_NAPOT;
-	set_pmp_and_sync(2, pmp_config);
+	set_pmp(2, pmp_config);
+  // dump_pmps();
   if(paddr == NULL)
   {
     printm("[sm.c@%s] no enough memory to create share memory.\r\n", __func__);
     return -1;  // 返回值为-1，表示未成功分配share memory
   }
-  printm("[sm.c@%s] shm paddr = 0x%lx, alloc mem size is %ld. \n", __func__, (unsigned long)paddr, (long int)resp_size);
+  printm("[sm.c@%s] shm paddr = 0x%lx, alloc mem size is %lx. \n", __func__, (unsigned long)paddr, (unsigned long)resp_size);
 
 
   int eid = -1;
@@ -323,6 +324,8 @@ int32_t sm_create_shm(uint64_t key, uint64_t req_size){
   uint32_t enclave_type = key & ENCLAVE_TYPE_MASK;
   uint64_t shm_key = (key & SHM_KEY_MASK) >> SHM_KEY_SHIFT;
 
+
+
   spin_lock(&shm_idx_lock);
   for (shm_idx = 0; shm_idx < NUM_SHM; shm_idx++){
     if (!enclave_shm[shm_idx].used){
@@ -332,6 +335,11 @@ int32_t sm_create_shm(uint64_t key, uint64_t req_size){
       enclave_shm[shm_idx].paddr = (unsigned long)paddr;
       enclave_shm[shm_idx].size = (unsigned long)resp_size;
       enclave_shm[shm_idx].perm = pt_perm;
+
+      spin_lock(&shm_ownership_lock);
+      // enclave->shm_ownership = 1;
+      enclave->shm_ownership = 1;
+      spin_unlock(&shm_ownership_lock);
 
       //shm的创建者attach到共享内存
       spin_lock(&shm_eid_idx_lock);
@@ -382,7 +390,8 @@ int32_t sm_map_shm(virtual_addr_t vaddr, uint32_t shmid){
   struct enclave_t* enclave;
   enclave =  get_enclave(eid);
 
-  virtual_addr_t shm_va = enclave->shm_ptr;
+  enclave->shm_ptr += shm_size;
+  virtual_addr_t shm_va = enclave->shm_ptr ;
   //将物理地址映射至创建者的虚拟地址空间中
   int ret = 0; 
   ret = map_pa2va(enclave, shm_va, (physical_addr_t) paddr, shm_size, enclave->pt_perm);
@@ -392,7 +401,7 @@ int32_t sm_map_shm(virtual_addr_t vaddr, uint32_t shmid){
   // printm("[sm.c@%s] get_enclave_paddr_from_va return shm_pa 0x%lx \n", __func__, (long int)shm_pa);
   if (shm_pa == paddr && ret == 0){
 	  // printm("[sm.c@%s] ret shm_va 0x%lx \n", __func__, (long int)shm_va);
-    enclave->shm_ptr = (unsigned long)shm_va + shm_size;
+
     // pa是vaddr指针指向的位置
     unsigned long* pa = (unsigned long*)get_enclave_paddr_from_va(enclave->root_page_table, vaddr);
     *pa = shm_va;
@@ -431,10 +440,6 @@ int32_t sm_attach_shm(uint32_t shmid, uint32_t enclave_type){
   //   printm("[sm.c@%s] get_enclave_id succeed! eid is %d .\n", __func__, eid);
   // }
 
-  struct enclave_t* enclave;
-  enclave =  get_enclave(eid);
-
-
   spin_lock(&shm_idx_lock);
   shm_idx = shmid;
   if (enclave_shm[shm_idx].used){
@@ -447,14 +452,15 @@ int32_t sm_attach_shm(uint32_t shmid, uint32_t enclave_type){
         spin_unlock(&shm_eid_idx_lock);
         spin_unlock(&shm_idx_lock);
 
-        spin_lock(&shm_ownership_lock);
-        enclave->shm_ownership = 0;
-        spin_unlock(&shm_ownership_lock);
+        // spin_lock(&shm_ownership_lock);
+        // enclave->shm_ownership = 0;
+        // spin_unlock(&shm_ownership_lock);
 
         return 0;
       }
     }
     printm("[SM@%s]error: shm eid has been fully used!\n", __func__);
+    spin_unlock(&shm_eid_idx_lock);
     spin_unlock(&shm_idx_lock);
     return -1; // 共享内存关联的Enclave已满
   }
@@ -485,17 +491,15 @@ int32_t sm_getshm_eid(uint32_t shmid, uint32_t enclave_type){
         return eid_next;
       }
     }
-    if (shm_eid_idx == NUM_EACH_SHM) {
-      // printm("[SM@%s] enclave_type  %d  Enclave not exist.\n", __func__, enclave_type);
-      spin_unlock(&shm_eid_idx_lock);
-      spin_unlock(&shm_idx_lock);
-    }
+    // printm("[SM@%s] enclave_type = %d  Enclave not exist.\n", __func__, enclave_type);
+    spin_unlock(&shm_eid_idx_lock);
+    spin_unlock(&shm_idx_lock);
   }
   return eid_next; // -1 被转移的Enclave不存在
 }
 
-int32_t sm_transfer_shm(uint32_t shmid, uint32_t eid_next, u8 pt_perm){
-  printm("[SM@%s]------ start-----\n", __func__);
+int32_t sm_transfer_shm(uint32_t shmid, uint32_t eid_next, u8 spmp_perm){
+  printm("[SM@%s]------ start -----\n", __func__);
   unsigned long paddr = 0, shm_size = 0;
 
   spin_lock(&shm_idx_lock);
@@ -536,7 +540,7 @@ int32_t sm_transfer_shm(uint32_t shmid, uint32_t eid_next, u8 pt_perm){
 
 
   ret = 0; 
-  ret = map_pa2va(enclave02, enclave02->shm_ptr, (physical_addr_t) paddr, shm_size, (pt_perm | PTE_U) << 1);
+  ret = map_pa2va(enclave02, enclave02->shm_ptr, (physical_addr_t) paddr, shm_size, (spmp_perm << 1) | PTE_U);
 
   shm_pa = get_enclave_paddr_from_va(enclave02->root_page_table, enclave02->shm_ptr);
  
@@ -565,6 +569,7 @@ uint32_t sm_get_shm(uint32_t shmid){
   spin_lock(&shm_ownership_lock);
   if (enclave->shm_ownership == 1){
       spin_unlock(&shm_ownership_lock);
+      printm("[SM%s] get shm succeed!\n", __func__);
       return 1;
   }
   spin_unlock(&shm_ownership_lock);
@@ -601,35 +606,25 @@ uint64_t sm_clock_end(){
 
 
 uint64_t sm_clock_start(){
-  // csr_clear(CSR_MIE, MIP_MTIP);
 
-
-  // csr_clear(CSR_MSTATUS, MSTATUS_MIE);
-  // csr_clear(CSR_MSTATUS, MSTATUS_SIE);
-  // spin_lock(&clock_lock);
+  spin_lock(&clock_lock);
 	csr_clear(CSR_MIP, MIP_STIP);
 	csr_clear(CSR_MIP, MIP_MTIP);
   csr_clear(CSR_MIE, MIP_STIP);
 	csr_clear(CSR_MIE, MIP_MTIP);
 
   uint64_t time = csr_read(CSR_TIME);
-  printm("[SM@%s] clock_start = %lu.\n", __func__, time);
+  // printm("[SM@%s] clock_start = %lu.\n", __func__, time);
   // return sbi_timer_value();
   return time;
 }
 
 uint64_t sm_clock_end(){
-  // while (!spin_lock_check(&clock_lock));
-  // uint64_t clock_end = sbi_timer_value();
-
-  // csr_set(CSR_MSTATUS, MSTATUS_SIE);
-  // csr_set(CSR_MSTATUS, MSTATUS_MIE);
 
   uint64_t time = csr_read(CSR_TIME);
-  printm("[SM@%s] clock_end = %lu.\n", __func__, time);
+  // printm("[SM@%s] clock_end = %lu.\n", __func__, time);
+  spin_unlock(&clock_lock);
   csr_set(CSR_MIE, MIP_STIP);
   csr_set(CSR_MIE, MIP_MTIP);
-  // spin_unlock(&clock_lock);
-  // return clock_end;
   return time;
 }

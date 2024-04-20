@@ -484,7 +484,7 @@ int grant_enclave_access(struct enclave_t* enclave)
 {
 	int region_idx = 0;
 	int pmp_idx = 0;
-	struct pmp_config_t pmp_config;
+	struct pmp_config_t pmp_config, pmp_config_shm;
 
 	if(check_mem_size(enclave->paddr, enclave->size) < 0)
 		return -1;
@@ -531,14 +531,19 @@ int grant_enclave_access(struct enclave_t* enclave)
 	/* Note: here we only set the PMP regions in local Hart*/
 	set_pmp(pmp_idx, pmp_config);
 
+	pmp_config_shm = get_pmp(2);  //shm
+	pmp_config_shm.perm = PMP_W | PMP_R;
+	set_pmp(2, pmp_config_shm);
+
+
 	/*FIXME: we should handle the case that the PMP region contains larger region */
-	if (pmp_config.paddr != enclave->paddr || pmp_config.size != enclave->size){
-		printm("[Penglai Monitor@%s] warning, region != enclave mem\n", __func__);
-		printm("[Penglai Monitor@%s] region: paddr(0x%lx) size(0x%lx)\n",
-				__func__, pmp_config.paddr, pmp_config.size);
-		printm("[Penglai Monitor@%s] enclave mem: paddr(0x%lx) size(0x%lx)\n",
-				__func__, enclave->paddr, enclave->size);
-	}
+	// if (pmp_config.paddr != enclave->paddr || pmp_config.size != enclave->size){
+	// 	printm("[Penglai Monitor@%s] warning, region != enclave mem\n", __func__);
+	// 	printm("[Penglai Monitor@%s] region: paddr(0x%lx) size(0x%lx)\n",
+	// 			__func__, pmp_config.paddr, pmp_config.size);
+	// 	printm("[Penglai Monitor@%s] enclave mem: paddr(0x%lx) size(0x%lx)\n",
+	// 			__func__, enclave->paddr, enclave->size);
+	// }
 
 	return 0;
 }
@@ -547,7 +552,7 @@ int retrieve_enclave_access(struct enclave_t *enclave)
 {
 	int region_idx = 0;
 	int pmp_idx = 0;
-	struct pmp_config_t pmp_config;
+	struct pmp_config_t pmp_config, pmp_config_shm;
 
 	//set pmp permission, ensure that enclave's paddr and size is pmp legal
 	//TODO: support multiple memory regions
@@ -588,6 +593,10 @@ int retrieve_enclave_access(struct enclave_t *enclave)
 
 	/* Note: here we only set the PMP regions in local Hart*/
 	set_pmp(pmp_idx, pmp_config);
+
+	pmp_config_shm = get_pmp(2);  //shm
+	pmp_config_shm.perm = PMP_NO_PERM;
+	set_pmp(2, pmp_config_shm);
 
 	return 0;
 }

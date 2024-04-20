@@ -38,7 +38,7 @@ int platform_init()
   pmp_config.mode = PMP_A_NAPOT;
   pmp_config.perm = PMP_R | PMP_W | PMP_X;
   set_pmp_and_sync(NPMP-1, pmp_config);
-  dump_pmps();
+  // dump_pmps();
 
   printm("[Penglai Monitor@%s] setting initial PMP ready\n", __func__);
   return 0;

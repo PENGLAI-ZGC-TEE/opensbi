@@ -157,6 +157,7 @@ static struct enclave_t* alloc_enclave()
 	if(enclave_metadata_head == NULL)
 	{
 		enclave_metadata_head = init_mem_link(ENCLAVE_METADATA_REGION_SIZE, sizeof(struct enclave_t));
+		printm("[SM@%s] enclave_metadata_head = 0x%lx.\n", __func__, (unsigned long)enclave_metadata_head);
 		if(!enclave_metadata_head)
 		{
 			printm("[Penglai Monitor@%s] don't have enough mem\r\n", __func__);
@@ -424,14 +425,14 @@ uintptr_t create_enclave(struct enclave_sbi_param_t create_args)
 	printm("[Penglai@%s], Dump PT for created enclave\n", __func__);
 	dump_pt(enclave->root_page_table, 1);
 #endif
-
+	/*
 	printm("[Penglai@%s] paddr:0x%lx, size:0x%lx, entry:0x%lx\n"
-			"untrusted ptr:0x%lx host_ptbr:0x%lx, pt:0x%ln\n"
+			"untrusted ptr:0x%lx host_ptbr:0x%lx, pt:0x%lx\n"
 			"thread_context.encl_ptbr:0x%lx\n cur_satp:0x%lx\n",
 			__func__, enclave->paddr, enclave->size, enclave->entry_point,
-			enclave->untrusted_ptr, enclave->host_ptbr, enclave->root_page_table,
+			enclave->untrusted_ptr, enclave->host_ptbr, (unsigned long)enclave->root_page_table,
 			enclave->thread_context.encl_ptbr, csr_read(CSR_SATP));
-
+	*/
 	// Calculate the enclave's measurement
 	hash_enclave(enclave, (void*)(enclave->hash), 0);
 
