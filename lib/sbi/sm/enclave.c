@@ -10,6 +10,7 @@
 #include <sbi/sbi_timer.h>
 #include <sm/attest.h>
 #include <sm/gm/SM3.h>
+#include <fdi/fdi_csr.h>
 
 static struct cpu_state_t cpus[MAX_HARTS] = {{0,}, };
 
@@ -469,6 +470,12 @@ uintptr_t create_enclave_m(struct enclave_sbi_param_t create_args)
 	enclave->thread_context.encl_ptbr = (create_args.paddr >> (RISCV_PGSHIFT) | SATP_MODE_CHOICE);
 	enclave->root_page_table = (unsigned long*)create_args.paddr;
 	enclave->state = FRESH;
+	// FDI
+	enclave->maintext_start = create_args.maintext_start;
+	enclave->maintext_end = create_args.maintext_end;
+	enclave->fdi_enable = create_args.fdi_enable;
+
+
 
 	//Dump the PT here, for debug
 #if 0
@@ -571,6 +578,26 @@ uintptr_t run_enclave(uintptr_t* regs, unsigned int eid)
 	regs[11] = (uintptr_t)enclave->entry_point;
 	regs[12] = (uintptr_t)enclave->untrusted_ptr;
 	regs[13] = (uintptr_t)enclave->untrusted_size;
+
+    /* Init dasics csr here */
+	if (enclave->fdi_enable)
+	{
+		// set FDI register	
+		uintptr_t dasicsUmainCfg = DASICS_UCFG_ENA;
+		uintptr_t dasicsUmainBoundLO = enclave->maintext_start;
+		uintptr_t dasicsUmainBoundHI = enclave->maintext_end;    	
+		
+		// CSR_DUMCFG, CSR_DUMBOUNDLO, CSR_DUMBOUNDHI
+		csr_write(0x9e0, dasicsUmainCfg);
+		csr_write(0x9e2, dasicsUmainBoundLO);
+		csr_write(0x9e3, dasicsUmainBoundHI);
+
+		// Clear CSR_DLCFG0, CSR_DMAINCALL, CSR_DRETURNPC, CSR_DJCFG
+		csr_write(0x880, 0);
+		csr_write(0x8b0, 0);
+		csr_write(0x8b1, 0);
+		csr_write(0x8c8, 0);
+	}
 
 	enclave->state = RUNNING;
 

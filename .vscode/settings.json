@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "stdint.h": "c",
+        "platform.h": "c",
+        "print.h": "c",
+        "fdi_trap.h": "c"
+    }
+}

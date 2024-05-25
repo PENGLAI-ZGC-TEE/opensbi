@@ -21,6 +21,7 @@
 #include <sbi/sbi_trap.h>
 
 #include <sm/sm.h>
+#include <fdi/fdi_trap.h>
 
 static void __noreturn sbi_trap_error(const char *msg, int rc,
 				      ulong mcause, ulong mtval, ulong mtval2,
@@ -243,6 +244,19 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 			goto trap_error;
 		};
 		return regs;
+	}
+
+	if (mcause == CAUSE_FDI_FETCH_FAULT || \
+		mcause == CAUSE_FDI_LOAD_ACCESS_FAULT || \
+		mcause == CAUSE_FDI_STORE_ACCESS_FAULT)
+	{
+		if (check_in_enclave_world() >= 0)
+		{
+			// sbi_printf("[FDI]: Handle FDI trap: 0x%lx in enclave wrold\n", mcause);
+			handle_fdi_trap(regs, mcause, mtval);
+
+			return regs;
+		}
 	}
 
 	switch (mcause) {

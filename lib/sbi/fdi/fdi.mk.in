@@ -1,0 +1,14 @@
+fdi_hdrs = \
+  fdi_csr.h \
+  fdi_trap.h
+
+fdi_c_srcs = \
+  fdi_trap.c
+
+fdi_asm_srcs = \
+
+
+fdi_test_srcs =
+
+
+fdi_install_prog_srcs =

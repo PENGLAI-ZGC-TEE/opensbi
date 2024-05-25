@@ -81,6 +81,11 @@ struct enclave_t
   unsigned char signer[HASH_SIZE];
   struct spmp_config_t enclave_spmp_context[NSPMP];
   
+  // FDI
+  unsigned long maintext_start;
+	unsigned long maintext_end;
+	unsigned long fdi_enable;
+
   //enclave thread context
   //TODO: support multiple threads
   struct thread_state_t thread_context;

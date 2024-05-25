@@ -568,6 +568,12 @@
 #define CAUSE_VIRTUAL_INST_FAULT	0x16
 #define CAUSE_STORE_GUEST_PAGE_FAULT	0x17
 
+#define CAUSE_FDI_FETCH_FAULT 0x18
+#define CAUSE_FDI_LOAD_ACCESS_FAULT 0x19
+#define CAUSE_FDI_STORE_ACCESS_FAULT 0x1a
+
+
+
 /* ===== Instruction Encodings ===== */
 
 #define INSN_MATCH_LB			0x3
