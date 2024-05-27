@@ -149,6 +149,11 @@ uintptr_t sm_create_enclave(uintptr_t enclave_sbi_param)
   enclave->enclave_spmp_context[1].mode = SPMP_NAPOT;
   enclave->enclave_spmp_context[1].perm = SPMP_R | SPMP_W | SPMP_X;
   printm("[Penglai Monitor] %s, kbuffer_paddr: 0x%lx\n", __func__, enclave_sbi_param_local.kbuffer_paddr);
+  enclave->enclave_spmp_context[2].paddr = enclave_sbi_param_local.untrusted_ptr;
+  enclave->enclave_spmp_context[2].size = enclave_sbi_param_local.untrusted_size;
+  enclave->enclave_spmp_context[2].mode = SPMP_NAPOT;
+  enclave->enclave_spmp_context[2].perm = SPMP_R | SPMP_W | SPMP_X;
+
   sbi_memset(enclave->thread_context.host_spmp_context, 0, sizeof(struct spmp_config_t) * (NSPMP-1));
 
   for(int i = 0; i < (NSPMP-1); i++)
@@ -311,3 +316,9 @@ uintptr_t sm_do_timer_irq(uintptr_t *regs, uintptr_t mcause, uintptr_t mepc)
   regs[11] = ret; //value
   return ret;
 }
+
+uintptr_t sm_get_kbuffer(){
+  int eid = get_enclave_id();
+  struct enclave_t* enclave = get_enclave(eid);
+  return enclave->kbuffer + 0x1000;
+} 

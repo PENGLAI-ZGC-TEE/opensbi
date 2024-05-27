@@ -28,7 +28,7 @@ static void enter_enclave_world(int eid)
 	platform_enter_enclave_world();
 }
 
-static int get_enclave_id()
+int get_enclave_id()
 {
 	return cpus[csr_read(CSR_MHARTID)].eid;
 }
