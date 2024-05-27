@@ -79,6 +79,9 @@ static int sbi_ecall_penglai_enclave_handler(unsigned long extid, unsigned long 
 
 	switch (funcid) {
 		// The following is the Penglai's Handler
+		case SBI_GET_KBUFFER:
+			ret = sm_get_kbuffer();
+			break;
 		case SBI_EXIT_ENCLAVE:
 			ret = sm_exit_enclave((uintptr_t *)regs, regs->a0);
 			break;

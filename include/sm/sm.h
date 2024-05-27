@@ -36,6 +36,8 @@ extern uintptr_t _fw_start[], _fw_end[];
 #define SBI_ENCLAVE_OCALL        98
 #define SBI_GET_KEY             88
 
+#define SBI_GET_KBUFFER         60
+
 //Error code of SBI_ALLOC_ENCLAVE_MEM
 #define ENCLAVE_NO_MEMORY       -2
 #define ENCLAVE_ERROR           -1
@@ -84,5 +86,7 @@ uintptr_t sm_exit_enclave(uintptr_t *regs, unsigned long retval);
 uintptr_t sm_do_timer_irq(uintptr_t *regs, uintptr_t mcause, uintptr_t mepc);
 
 int check_in_enclave_world();
+
+uintptr_t sm_get_kbuffer();
 
 #endif /* _SM_H */

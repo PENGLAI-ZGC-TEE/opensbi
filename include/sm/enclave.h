@@ -114,6 +114,7 @@ uintptr_t enclave_derive_seal_key(uintptr_t* regs, uintptr_t salt_va,
                         uintptr_t salt_len, uintptr_t key_buf_va, uintptr_t key_buf_len);
 
 int check_in_enclave_world();
+int get_enclave_id();
 struct enclave_t* get_enclave(int eid);
 
 #endif /* _ENCLAVE_H */
