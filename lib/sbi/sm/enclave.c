@@ -849,7 +849,7 @@ uintptr_t exit_enclave(uintptr_t* regs, unsigned long retval)
 	// Clear fdi enable register
 	if (enclave->fdi_enable)
 	{
-		// CSR_DUMCFG, CSR_DUMBOUNDLO, CSR_DUMBOUNDHI
+		// Clear CSR_DUMCFG, CSR_DUMBOUNDLO, CSR_DUMBOUNDHI
 		csr_write(0x9e0, 0);
 		csr_write(0x9e2, 0);
 		csr_write(0x9e3, 0);

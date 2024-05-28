@@ -3,6 +3,7 @@
 #include <sbi/sbi_unpriv.h>
 #include <fdi/fdi_csr.h>
 #include <fdi/fdi_trap.h>
+#include <sm/sm.h>
 #include <sm/platform/pmp/enclave_mm.h>
 
 
@@ -12,6 +13,7 @@ uintptr_t handle_fdi_trap(struct sbi_trap_regs *regs, uintptr_t mcause, uintptr_
 
     // If compressed, mepc += 4
     __attribute__ ((__unused__)) ulong inst;
+   __attribute__ ((__unused__)) uintptr_t ret = 0;
     int strid = 4;
     
     if ((regs->mepc & 0x3ul) != 0) // This is a compressed instruction
@@ -53,9 +55,12 @@ deal_fdi:
     default:
         break;
     }
+    // We can exit direct.
+    ret = sm_exit_enclave((uintptr_t *)regs, 0x1);
 
+    regs->a0 = 0;
+    regs->a1 = 0;
 
-    regs->mepc += strid;
-
+    regs->mepc += strid;   
     return 0;
 }
