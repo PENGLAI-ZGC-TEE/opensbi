@@ -846,6 +846,22 @@ uintptr_t exit_enclave(uintptr_t* regs, unsigned long retval)
 		return -1UL;
 	}
 
+	// Clear fdi enable register
+	if (enclave->fdi_enable)
+	{
+		// CSR_DUMCFG, CSR_DUMBOUNDLO, CSR_DUMBOUNDHI
+		csr_write(0x9e0, 0);
+		csr_write(0x9e2, 0);
+		csr_write(0x9e3, 0);
+
+		// Clear CSR_DLCFG0, CSR_DMAINCALL, CSR_DRETURNPC, CSR_DJCFG
+		csr_write(0x880, 0);
+		csr_write(0x8b0, 0);
+		csr_write(0x8b1, 0);
+		csr_write(0x8c8, 0);	
+		enclave->fdi_enable = 0;	
+	}
+
 	swap_from_enclave_to_host(regs, enclave);
 
 	//free enclave's memory

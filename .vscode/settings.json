@@ -3,6 +3,16 @@
         "stdint.h": "c",
         "platform.h": "c",
         "print.h": "c",
-        "fdi_trap.h": "c"
+        "fdi_trap.h": "c",
+        "enclave_mm.h": "c",
+        "fdi_csr.h": "c",
+        "array": "c",
+        "chrono": "c",
+        "compare": "c",
+        "functional": "c",
+        "ratio": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c"
     }
 }
