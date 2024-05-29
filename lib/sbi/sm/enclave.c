@@ -339,6 +339,9 @@ int swap_from_host_to_enclave(uintptr_t* host_regs, struct enclave_t* enclave)
 	//disable interrupts/exceptions delegation
 	swap_prev_mideleg(&(enclave->thread_context), csr_read(CSR_MIDELEG));
 	swap_prev_medeleg(&(enclave->thread_context), csr_read(CSR_MEDELEG));
+	
+	// Set fdi state
+	set_fdi_from_host_to_enclave(enclave);
 
 	// swap the mepc to transfer control to the enclave
 	// This will be overwriten by the entry-address in the case of run_enclave
@@ -417,6 +420,9 @@ int swap_from_enclave_to_host(uintptr_t* regs, struct enclave_t* enclave)
 	swap_prev_mepc(&(enclave->thread_context), regs[32]);
 	regs[32] = csr_read(CSR_MEPC); //update the new value to host_regs
 
+	//set fdi state
+	set_fdi_from_enclave_to_host(enclave);
+
 	//restore mstatus
 #if 0
 	uintptr_t mstatus = read_csr(mstatus);
@@ -475,7 +481,7 @@ uintptr_t create_enclave_m(struct enclave_sbi_param_t create_args)
 	enclave->maintext_end = create_args.maintext_end;
 	enclave->fdi_enable = create_args.fdi_enable;
 
-
+	sbi_memset(&enclave->fdi_state, 0, sizeof(struct fdi_state_t));
 
 	//Dump the PT here, for debug
 #if 0
@@ -558,6 +564,15 @@ uintptr_t run_enclave(uintptr_t* regs, unsigned int eid)
 		goto run_enclave_out;
 	}
 
+    /* Init dasics csr here */
+	if (enclave->fdi_enable)
+	{
+		// set FDI register	
+		enclave->fdi_state.fdi_dumcfg = DASICS_UCFG_ENA;
+		enclave->fdi_state.fdi_dumboundlo = enclave->maintext_start;
+		enclave->fdi_state.fdi_dumboundhi = enclave->maintext_end; 
+	}
+
 	if (swap_from_host_to_enclave(regs, enclave) < 0)
 	{
 		printm("[Penglai Monitor@%s] enclave can not be run\r\n", __func__);
@@ -579,25 +594,6 @@ uintptr_t run_enclave(uintptr_t* regs, unsigned int eid)
 	regs[12] = (uintptr_t)enclave->untrusted_ptr;
 	regs[13] = (uintptr_t)enclave->untrusted_size;
 
-    /* Init dasics csr here */
-	if (enclave->fdi_enable)
-	{
-		// set FDI register	
-		uintptr_t dasicsUmainCfg = DASICS_UCFG_ENA;
-		uintptr_t dasicsUmainBoundLO = enclave->maintext_start;
-		uintptr_t dasicsUmainBoundHI = enclave->maintext_end;    	
-		
-		// CSR_DUMCFG, CSR_DUMBOUNDLO, CSR_DUMBOUNDHI
-		csr_write(0x9e0, dasicsUmainCfg);
-		csr_write(0x9e2, dasicsUmainBoundLO);
-		csr_write(0x9e3, dasicsUmainBoundHI);
-
-		// Clear CSR_DLCFG0, CSR_DMAINCALL, CSR_DRETURNPC, CSR_DJCFG
-		csr_write(0x880, 0);
-		csr_write(0x8b0, 0);
-		csr_write(0x8b1, 0);
-		csr_write(0x8c8, 0);
-	}
 
 	enclave->state = RUNNING;
 
@@ -846,23 +842,15 @@ uintptr_t exit_enclave(uintptr_t* regs, unsigned long retval)
 		return -1UL;
 	}
 
-	// Clear fdi enable register
-	if (enclave->fdi_enable)
-	{
-		// Clear CSR_DUMCFG, CSR_DUMBOUNDLO, CSR_DUMBOUNDHI
-		csr_write(0x9e0, 0);
-		csr_write(0x9e2, 0);
-		csr_write(0x9e3, 0);
 
-		// Clear CSR_DLCFG0, CSR_DMAINCALL, CSR_DRETURNPC, CSR_DJCFG
-		csr_write(0x880, 0);
-		csr_write(0x8b0, 0);
-		csr_write(0x8b1, 0);
-		csr_write(0x8c8, 0);	
-		enclave->fdi_enable = 0;	
-	}
 
 	swap_from_enclave_to_host(regs, enclave);
+
+	// Clear fdi enable
+	if (enclave->fdi_enable)
+	{
+		enclave->fdi_enable = 0;	
+	}
 
 	//free enclave's memory
 	//TODO: support multiple memory region

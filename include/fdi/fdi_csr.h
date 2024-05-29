@@ -53,7 +53,33 @@
 #define DASICS_JUMPCFG_V    	0x1UL
 
 
+struct fdi_state_t
+{
+    unsigned long fdi_dumcfg;
+    unsigned long fdi_dumboundlo;
+    unsigned long fdi_dumboundhi;
 
+    unsigned long fdi_dlcfg0;
+
+    unsigned long fdi_dlbound0lo;
+    unsigned long fdi_dlbound0hi;
+    unsigned long fdi_dlbound1lo;
+    unsigned long fdi_dlbound1hi;
+    unsigned long fdi_dlbound2lo;
+    unsigned long fdi_dlbound2hi;
+    unsigned long fdi_dlbound3lo;    
+    unsigned long fdi_dlbound3hi;    
+
+    unsigned long fdi_djcfg;
+    unsigned long fdi_djbound0lo;
+    unsigned long fdi_djbound0hi;
+
+};
+
+struct enclave_t;
+
+void set_fdi_from_enclave_to_host(struct enclave_t * enclave);
+void set_fdi_from_host_to_enclave(struct enclave_t * enclave);
 
 
 

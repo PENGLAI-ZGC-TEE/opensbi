@@ -9,6 +9,7 @@
 #include <sm/thread.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <fdi/fdi_csr.h>
 
 #define ENCLAVES_PER_METADATA_REGION 128
 #define ENCLAVE_METADATA_REGION_SIZE ((sizeof(struct enclave_t)) * ENCLAVES_PER_METADATA_REGION)
@@ -85,10 +86,12 @@ struct enclave_t
   unsigned long maintext_start;
 	unsigned long maintext_end;
 	unsigned long fdi_enable;
+  struct fdi_state_t fdi_state;
 
   //enclave thread context
   //TODO: support multiple threads
   struct thread_state_t thread_context;
+
 };
 
 struct cpu_state_t
