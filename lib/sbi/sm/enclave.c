@@ -1007,6 +1007,45 @@ out:
 	return ret;
 }
 
+uintptr_t enclave_num_1_attack(uintptr_t* regs, uintptr_t ta_feature_va)
+{
+    uintptr_t ret = 0;
+    int eid = get_enclave_id();
+    struct enclave_t* enclave = NULL;
+    uintptr_t ta_feature_pa = 0;
+    pte_t *enclave_root_pt;
+
+    if(check_in_enclave_world() < 0)
+    {
+        printm_err("[Penglai Monitor@%s] check enclave world is failed\n", __func__);
+        return -1;
+    }
+
+    enclave = get_enclave(eid);
+
+    spin_lock(&enclave_metadata_lock);
+
+    if(!enclave || check_enclave_authentication(enclave)!=0 || enclave->state != RUNNING)
+    {
+        ret = -1UL;
+        printm_err("[Penglai Monitor@%s] check enclave authentication is failed\n", __func__);
+        goto out;
+    }
+
+    uintptr_t ocall_func_id = OCALL_NUM_1_ATTACK;
+    enclave_root_pt = (pte_t*)(enclave->thread_context.encl_ptbr << RISCV_PGSHIFT);
+    ta_feature_pa = get_enclave_paddr_from_va(enclave_root_pt, (uintptr_t)ta_feature_va);
+    copy_to_host((uintptr_t*)enclave->ocall_func_id, &ocall_func_id, sizeof(uintptr_t));
+    copy_to_host((uintptr_t*)enclave->ocall_arg0, &ta_feature_pa, sizeof(uintptr_t));
+
+    swap_from_enclave_to_host(regs, enclave);
+    enclave->state = RUNNABLE;
+    ret = ENCLAVE_OCALL;
+out:
+    spin_unlock(&enclave_metadata_lock);
+    return ret;
+}
+
 /*
  * Timer handler for penglai enclaves
  * In normal case, an enclave will pin a HART and run until it finished.
