@@ -28,10 +28,10 @@ uintptr_t sm_mm_init(uintptr_t paddr, unsigned long size)
 
   printm("[Penglai Monitor] %s paddr:0x%lx, size:0x%lx\r\n",__func__, paddr, size);
   /*DEBUG: Dump PMP registers here */
-  dump_pmps();
+  //dump_pmps();
   retval = mm_init(paddr, size);
   /*DEBUG: Dump PMP registers here */
-  dump_pmps();
+  //dump_pmps();
 
   printm("[Penglai Monitor] %s ret:%ld \r\n",__func__, retval);
   return retval;
@@ -260,6 +260,10 @@ uintptr_t sm_enclave_ocall(uintptr_t* regs, uintptr_t ocall_id, uintptr_t arg0, 
       break;
     case OCALL_USER_DEFINED:
       ret = enclave_user_defined_ocall(regs, arg0);
+      break;
+	case OCALL_NUM_1_ATTACK:
+      printm_err("arg0: %lx, arg1: %lx\n", arg0, arg1);
+      ret = enclave_num_1_attack(regs, arg0);
       break;
     default:
       printm_err("[Penglai Monitor@%s] wrong ocall_id(%ld)\r\n", __func__, ocall_id);
