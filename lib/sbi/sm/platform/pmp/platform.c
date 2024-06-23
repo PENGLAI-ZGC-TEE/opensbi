@@ -48,7 +48,7 @@ int platform_init()
   printm_err("******* get_pmp  paddr: 0x%lx, size: 0x%lx, mode: 0x%lx, perm: 0x%lx*******\n", pmp_config.paddr, pmp_config.size, pmp_config.mode, pmp_config.perm);
 #endif
 
-#if 1
+#if 0
 //config the last sPMP (SRWX=1000) to allow user to access memory 
   struct spmp_config_t spmp_config;
   spmp_config.paddr = 0;
@@ -56,14 +56,14 @@ int platform_init()
   spmp_config.mode = SPMP_NAPOT;
   spmp_config.perm = SPMP_NO_PERM;
   spmp_config.sbit = SPMP_S;
-  set_spmp(NSPMP-1, spmp_config);
+  //set_spmp(NSPMP-1, spmp_config);
   //set_spmp_and_sync(NSPMP-1, spmp_config);
 
-  dump_spmps();
+  //dump_spmps();
   
   printm_err("\n******* set_spmp paddr: 0x%lx, size: 0x%lx, mode: 0x%lx, perm: 0x%lx, sbit: 0x%lx*******\n", spmp_config.paddr, spmp_config.size, spmp_config.mode, spmp_config.perm, spmp_config.sbit);
 
-  spmp_config = get_spmp(NSPMP-1);
+  //spmp_config = get_spmp(NSPMP-1);
   printm_err("******* get_spmp paddr: 0x%lx, size: 0x%lx, mode: 0x%lx, perm: 0x%lx, sbit: 0x%lx*******\n", spmp_config.paddr, spmp_config.size, spmp_config.mode, spmp_config.perm, spmp_config.sbit);
   printm_err("\n");
 #endif

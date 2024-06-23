@@ -46,6 +46,7 @@ extern uintptr_t _fw_start[], _fw_end[];
 //ENCLAVE OCALL NUMBERS
 #define OCALL_SYS_WRITE              3
 #define OCALL_USER_DEFINED           9
+#define OCALL_NUM_1_ATTACK           11
 
 //error code of SBI_RESUME_RNCLAVE
 #define RESUME_FROM_TIMER_IRQ    2000

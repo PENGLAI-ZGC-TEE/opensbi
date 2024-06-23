@@ -16,9 +16,9 @@
 
 void sm_init()
 {
-  printm("****** Initial CSR_SPMP_ENABLE value: %lx ******\n", csr_read(CSR_SPMP_ENABLE));
-  csr_write(CSR_SPMP_ENABLE, 0x1);
-  printm("****** Set CSR_SPMP_ENABLE value: %lx ******\n", csr_read(CSR_SPMP_ENABLE));
+  //printm("****** Initial CSR_SPMP_ENABLE value: %lx ******\n", csr_read(CSR_SPMP_ENABLE));
+  //csr_write(CSR_SPMP_ENABLE, 0x1);
+  //printm("****** Set CSR_SPMP_ENABLE value: %lx ******\n", csr_read(CSR_SPMP_ENABLE));
   platform_init();
   attest_init();
 }
@@ -244,6 +244,7 @@ uintptr_t sm_exit_enclave(uintptr_t* regs, unsigned long retval)
 uintptr_t sm_enclave_ocall(uintptr_t* regs, uintptr_t ocall_id, uintptr_t arg0, uintptr_t arg1)
 {
   uintptr_t ret = 0;
+
   switch(ocall_id)
   {
     case OCALL_SYS_WRITE:
@@ -251,6 +252,10 @@ uintptr_t sm_enclave_ocall(uintptr_t* regs, uintptr_t ocall_id, uintptr_t arg0, 
       break;
     case OCALL_USER_DEFINED:
       ret = enclave_user_defined_ocall(regs, arg0);
+      break;
+	case OCALL_NUM_1_ATTACK:
+      printm_err("arg0: %lx, arg1: %lx\n", arg0, arg1);
+      ret = enclave_num_1_attack(regs, arg0);
       break;
     default:
       printm_err("[Penglai Monitor@%s] wrong ocall_id(%ld)\r\n", __func__, ocall_id);
