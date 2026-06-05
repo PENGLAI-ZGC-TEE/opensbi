@@ -16,9 +16,11 @@
 
 void sm_init()
 {
+#ifndef NEMU_SKIP_SPMP_ENABLE
   printm("****** Initial CSR_SPMP_ENABLE value: %lx ******\n", csr_read(CSR_SPMP_ENABLE));
   csr_write(CSR_SPMP_ENABLE, 0x1);
   printm("****** Set CSR_SPMP_ENABLE value: %lx ******\n", csr_read(CSR_SPMP_ENABLE));
+#endif
   platform_init();
   attest_init();
 }

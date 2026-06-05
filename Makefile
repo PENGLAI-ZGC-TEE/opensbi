@@ -203,6 +203,10 @@ GENFLAGS	+=	$(libsbiutils-genflags-y)
 GENFLAGS	+=	$(platform-genflags-y)
 GENFLAGS	+=	$(firmware-genflags-y)
 
+ifdef NEMU_SKIP_SPMP_ENABLE
+GENFLAGS	+=	-DNEMU_SKIP_SPMP_ENABLE=$(NEMU_SKIP_SPMP_ENABLE)
+endif
+
 CFLAGS		=	-g -Wall -Werror -ffreestanding -nostdlib -fno-strict-aliasing -O2
 CFLAGS		+=	-fno-omit-frame-pointer -fno-optimize-sibling-calls
 CFLAGS		+=	-mno-save-restore -mstrict-align
