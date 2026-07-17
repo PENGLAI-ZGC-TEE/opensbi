@@ -116,6 +116,12 @@ static void sbi_boot_print_hart(struct sbi_scratch *scratch, u32 hartid)
 		   sbi_hart_pmp_granularity(scratch));
 	sbi_printf("Boot HART PMP Address Bits: %d\n",
 		   sbi_hart_pmp_addrbits(scratch));
+	sbi_printf("Boot HART PMA Count       : %d\n",
+		   sbi_hart_pmp_count(scratch));
+	sbi_printf("Boot HART PMA Granularity : %lu\n",
+		   sbi_hart_pmp_granularity(scratch));
+	sbi_printf("Boot HART PMA Address Bits: %d\n",
+		   sbi_hart_pmp_addrbits(scratch));
 	sbi_printf("Boot HART MHPM Count      : %d\n",
 		   sbi_hart_mhpm_count(scratch));
 	sbi_printf("Boot HART MHPM Count      : %d\n",
